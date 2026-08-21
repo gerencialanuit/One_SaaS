@@ -51,6 +51,8 @@ interface CartPanelProps {
   error: string | null
   loading: boolean
   onSubmit: (formData: FormData) => void
+  onOpenTemplatePicker: () => void
+  onOpenSaveTemplate: () => void
 }
 
 export function CartPanel({
@@ -88,10 +90,31 @@ export function CartPanel({
   error,
   loading,
   onSubmit,
+  onOpenTemplatePicker,
+  onOpenSaveTemplate,
 }: CartPanelProps) {
   return (
     <div className="sticky top-8 rounded-lg border border-[#E5E9EF] bg-white p-6 shadow-sm">
-      <h2 className="font-heading text-lg font-semibold text-navy">Carrito de cotización</h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="font-heading text-lg font-semibold text-navy">Carrito de cotización</h2>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={onOpenTemplatePicker}
+            className="rounded-md border border-[#E5E9EF] px-2.5 py-1 text-xs font-medium text-slate transition-colors hover:border-navy hover:text-navy"
+          >
+            Cargar plantilla
+          </button>
+          <button
+            type="button"
+            onClick={onOpenSaveTemplate}
+            disabled={!hasItems}
+            className="rounded-md border border-[#E5E9EF] px-2.5 py-1 text-xs font-medium text-slate transition-colors hover:border-navy hover:text-navy disabled:opacity-40"
+          >
+            Guardar plantilla
+          </button>
+        </div>
+      </div>
 
       <form action={onSubmit} className="mt-4 space-y-4">
         <div>

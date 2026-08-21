@@ -152,6 +152,22 @@ export interface ProductFavorite {
   created_at: string
 }
 
+export interface QuoteTemplate {
+  id: string
+  name: string
+  is_shared: boolean
+  created_by: string
+  created_at: string
+}
+
+export interface QuoteTemplateItem {
+  id: string
+  template_id: string
+  product_id: string
+  quantity: number
+  zone_name: string | null
+}
+
 export type QuoteSignatureDecision = 'approved' | 'rejected'
 
 export interface QuoteSignature {
@@ -265,6 +281,16 @@ export interface Database {
         Row: ProductFavorite
         Insert: Omit<ProductFavorite, 'created_at'> & { created_at?: string }
         Update: Partial<Omit<ProductFavorite, 'profile_id' | 'product_id'>>
+      }
+      quote_templates: {
+        Row: QuoteTemplate
+        Insert: Omit<QuoteTemplate, 'id' | 'created_at'> & { id?: string; created_at?: string }
+        Update: Partial<Omit<QuoteTemplate, 'id' | 'created_at'>>
+      }
+      quote_template_items: {
+        Row: QuoteTemplateItem
+        Insert: Omit<QuoteTemplateItem, 'id'> & { id?: string }
+        Update: Partial<Omit<QuoteTemplateItem, 'id' | 'template_id'>>
       }
     }
     Views: {

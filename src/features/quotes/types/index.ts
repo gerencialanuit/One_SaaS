@@ -1,4 +1,4 @@
-import type { Quote, Client, QuoteVersion, QuoteTax, ProductCondition } from '@/types/database'
+import type { Quote, Client, QuoteVersion, QuoteTax, ProductCondition, QuoteTemplate, QuoteTemplateItem } from '@/types/database'
 
 export interface QuoteProductOption {
   id: string
@@ -30,6 +30,11 @@ export interface QuoteItemWithProduct {
   unit_price: number
   zone_name: string | null
   product: { id: string; name: string; sku: string | null } | null
+}
+
+export interface QuoteTemplateWithItems extends QuoteTemplate {
+  items: QuoteTemplateItem[]
+  creator: { full_name: string | null; email: string } | null
 }
 
 export interface QuoteDetailData extends Quote {

@@ -7,7 +7,9 @@ import { computeQuoteEstimate, type IncomingOrder } from '../utils/estimate'
 import { computeQuoteTotals, DEFAULT_LABOR_RATE, DEFAULT_TAX_LINES, type TaxLine } from '../utils/taxes'
 import { ProductCatalogGrid } from './ProductCatalogGrid'
 import { CartPanel, type CartZone } from './CartPanel'
-import type { QuoteProductOption } from '../types'
+import { TemplatePickerModal } from './TemplatePickerModal'
+import { SaveTemplateModal } from './SaveTemplateModal'
+import type { QuoteProductOption, QuoteTemplateWithItems } from '../types'
 
 interface ClientOption {
   id: string
@@ -19,6 +21,9 @@ interface QuoteBuilderFormProps {
   products: QuoteProductOption[]
   incomingOrders: IncomingOrder[]
   maxDiscountPercent: number
+  templates: QuoteTemplateWithItems[]
+  currentProfileId: string
+  isGerente: boolean
 }
 
 interface Zone {
@@ -31,7 +36,15 @@ function newZone(index: number): Zone {
   return { id: crypto.randomUUID(), name: `Zona ${index}`, items: new Map() }
 }
 
-export function QuoteBuilderForm({ clients, products, incomingOrders, maxDiscountPercent }: QuoteBuilderFormProps) {
+export function QuoteBuilderForm({
+  clients,
+  products,
+  incomingOrders,
+  maxDiscountPercent,
+  templates,
+  currentProfileId,
+  isGerente,
+}: QuoteBuilderFormProps) {
   const router = useRouter()
   const [clientId, setClientId] = useState('')
   const [projectType, setProjectType] = useState('')
@@ -44,6 +57,8 @@ export function QuoteBuilderForm({ clients, products, incomingOrders, maxDiscoun
   const [laborPercent, setLaborPercent] = useState(DEFAULT_LABOR_RATE)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false)
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false)
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
   const productsById = useMemo(() => new Map(products.map((p) => [p.id, p])), [products])
@@ -114,6 +129,28 @@ export function QuoteBuilderForm({ clients, products, incomingOrders, maxDiscoun
 
   function changeTaxRate(index: number, rate: number) {
     setTaxes((prev) => prev.map((t, i) => (i === index ? { ...t, rate } : t)))
+  }
+
+  function loadTemplate(template: QuoteTemplateWithItems) {
+    const zonesByName = new Map<string, Zone>()
+    let zoneIndex = 0
+
+    for (const item of template.items) {
+      if (!productsById.has(item.product_id)) continue
+      const zoneName = item.zone_name || `Zona ${zoneIndex + 1}`
+      let zone = zonesByName.get(zoneName)
+      if (!zone) {
+        zoneIndex += 1
+        zone = { id: crypto.randomUUID(), name: zoneName, items: new Map() }
+        zonesByName.set(zoneName, zone)
+      }
+      zone.items.set(item.product_id, (zone.items.get(item.product_id) ?? 0) + item.quantity)
+    }
+
+    const newZones = Array.from(zonesByName.values())
+    setZones(newZones)
+    setActiveZoneId(newZones[0]?.id ?? null)
+    setShowTemplatePicker(false)
   }
 
   function addZone() {
@@ -268,8 +305,33 @@ export function QuoteBuilderForm({ clients, products, incomingOrders, maxDiscoun
           error={error}
           loading={loading}
           onSubmit={handleSubmit}
+          onOpenTemplatePicker={() => setShowTemplatePicker(true)}
+          onOpenSaveTemplate={() => setShowSaveTemplate(true)}
         />
       </div>
+
+      {showTemplatePicker && (
+        <TemplatePickerModal
+          templates={templates}
+          currentProfileId={currentProfileId}
+          isGerente={isGerente}
+          hasItemsInCart={hasItems}
+          onLoad={loadTemplate}
+          onClose={() => setShowTemplatePicker(false)}
+        />
+      )}
+
+      {showSaveTemplate && (
+        <SaveTemplateModal
+          zones={resolvedZones}
+          isGerente={isGerente}
+          onClose={() => setShowSaveTemplate(false)}
+          onSaved={() => {
+            setShowSaveTemplate(false)
+            router.refresh()
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -72,7 +72,11 @@ export function ProductCard({ product, quantityInCart, onAdd, isFavorite, onTogg
         <button
           type="button"
           onClick={onAdd}
-          className="mt-3 w-full rounded-md bg-brand-blue py-1.5 text-sm font-medium text-white transition-colors hover:bg-brand-blue-hover"
+          className={`mt-3 w-full rounded-md border py-1.5 text-sm font-medium text-navy transition-colors ${
+            quantityInCart > 0
+              ? 'border-navy bg-tint-blue hover:bg-tint-blue/70'
+              : 'border-[#E5E9EF] hover:border-navy hover:bg-tint-blue'
+          }`}
         >
           {quantityInCart > 0 ? `+ Agregar (${quantityInCart} en carrito)` : '+ Agregar'}
         </button>

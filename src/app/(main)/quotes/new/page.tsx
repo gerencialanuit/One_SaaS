@@ -7,24 +7,37 @@ export default async function NewQuotePage() {
   const supabase = await createClient()
   const profile = await getCurrentProfile()
 
-  const [{ data: clients }, { data: products }, { data: availability }, { data: poItems }, { data: favorites }, { data: discountRule }] =
-    await Promise.all([
-      supabase.from('clients').select('id, name').order('name'),
-      supabase
-        .from('products')
-        .select('id, name, sku, category, brand, condition, image_url, unit_price')
-        .eq('is_active', true)
-        .neq('condition', 'averiado')
-        .order('name'),
-      supabase.from('inventory_availability').select('product_id, available_with_quotes'),
-      supabase.from('purchase_order_items').select('product_id, quantity, purchase_order_id'),
-      profile
-        ? supabase.from('product_favorites').select('product_id').eq('profile_id', profile.id)
-        : Promise.resolve({ data: [] }),
-      profile
-        ? supabase.from('discount_rules').select('max_discount_percent').eq('role', profile.role).single()
-        : Promise.resolve({ data: null }),
-    ])
+  const [
+    { data: clients },
+    { data: products },
+    { data: availability },
+    { data: poItems },
+    { data: favorites },
+    { data: discountRule },
+    { data: templates },
+  ] = await Promise.all([
+    supabase.from('clients').select('id, name').order('name'),
+    supabase
+      .from('products')
+      .select('id, name, sku, category, brand, condition, image_url, unit_price')
+      .eq('is_active', true)
+      .neq('condition', 'averiado')
+      .order('name'),
+    supabase.from('inventory_availability').select('product_id, available_with_quotes'),
+    supabase.from('purchase_order_items').select('product_id, quantity, purchase_order_id'),
+    profile
+      ? supabase.from('product_favorites').select('product_id').eq('profile_id', profile.id)
+      : Promise.resolve({ data: [] }),
+    profile
+      ? supabase.from('discount_rules').select('max_discount_percent').eq('role', profile.role).single()
+      : Promise.resolve({ data: null }),
+    profile
+      ? supabase
+          .from('quote_templates')
+          .select('*, items:quote_template_items(*), creator:profiles(full_name, email)')
+          .order('created_at', { ascending: false })
+      : Promise.resolve({ data: [] }),
+  ])
 
   const availabilityMap = new Map((availability ?? []).map((a) => [a.product_id, a.available_with_quotes]))
   const favoriteIds = new Set((favorites ?? []).map((f) => f.product_id))
@@ -64,6 +77,9 @@ export default async function NewQuotePage() {
           products={productOptions}
           incomingOrders={incomingOrders}
           maxDiscountPercent={discountRule?.max_discount_percent ?? 0}
+          templates={templates ?? []}
+          currentProfileId={profile?.id ?? ''}
+          isGerente={profile?.role === 'gerente'}
         />
       </div>
     </div>

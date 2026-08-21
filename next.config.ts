@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
     mcpServer: true,
   },
   turbopack: {
-    root: 'D:/proyectos/Saas One automatizacion',
+    root: __dirname,
   },
 }
 

@@ -2,11 +2,13 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentProfile, hasRole } from '@/lib/supabase/profile'
 import { QuotesTable } from '@/features/quotes/components/QuotesTable'
+import { getTranslator } from '@/lib/i18n/server'
 import type { QuoteWithDetails } from '@/features/quotes/types'
 
 export default async function QuotesPage() {
   const supabase = await createClient()
   const profile = await getCurrentProfile()
+  const { t } = await getTranslator()
 
   const { data: quotes } = await supabase
     .from('quotes')
@@ -17,15 +19,15 @@ export default async function QuotesPage() {
     <div className="p-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-heading text-3xl font-bold text-navy">Cotizaciones</h1>
-          <p className="mt-1 text-slate">Todas las cotizaciones y su estado</p>
+          <h1 className="font-heading text-3xl font-bold text-navy">{t('quotes.title')}</h1>
+          <p className="mt-1 text-slate">{t('quotes.subtitle')}</p>
         </div>
         {hasRole(profile, 'comercial') && (
           <Link
             href="/quotes/new"
             className="rounded-lg bg-brand-blue px-5 py-2.5 font-medium text-white transition-colors hover:bg-brand-blue-hover"
           >
-            Nueva cotización
+            {t('quotes.new')}
           </Link>
         )}
       </div>

@@ -33,7 +33,7 @@ export async function getDashboardData(): Promise<DashboardData> {
         )
         .order('created_at', { ascending: false }),
       supabase.from('quote_signatures').select('quote_version_id, viewed_at, decision'),
-      supabase.from('products').select('id, name, sku, low_stock_threshold').eq('is_active', true),
+      supabase.from('products').select('id, name, sku, low_stock_threshold').eq('is_active', true).eq('supply_model', 'inventario'),
       supabase.from('inventory_availability').select('product_id, available_with_quotes, quantity_on_hand'),
       supabase
         .from('purchase_orders')

@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import { Plus_Jakarta_Sans, IBM_Plex_Sans } from 'next/font/google'
+import { getLocale } from '@/lib/i18n/server'
+import { LocaleProvider } from '@/lib/i18n/LocaleProvider'
 import './globals.css'
 
 const heading = Plus_Jakarta_Sans({
@@ -19,14 +21,18 @@ export const metadata: Metadata = {
   description: 'Cotizador agil con visibilidad de inventario para One Automatizacion',
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const locale = await getLocale()
+
   return (
-    <html lang="es" className={`${heading.variable} ${body.variable}`}>
-      <body className="bg-[#F7F9FC] font-sans text-navy antialiased">{children}</body>
+    <html lang={locale} className={`${heading.variable} ${body.variable}`}>
+      <body className="bg-[#F7F9FC] font-sans text-navy antialiased">
+        <LocaleProvider initialLocale={locale}>{children}</LocaleProvider>
+      </body>
     </html>
   )
 }

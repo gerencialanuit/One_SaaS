@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { createClient, updateClient } from '@/actions/clients'
 import { useEscapeClose } from '@/shared/hooks/useEscapeClose'
-import { CLIENT_TYPE_LABELS } from '../constants'
+import { CLIENT_TYPES, getClientTypeLabel } from '../constants'
+import { useLocale } from '@/lib/i18n/LocaleProvider'
 import type { Client } from '@/types/database'
 
 interface ClientFormModalProps {
@@ -14,6 +15,7 @@ interface ClientFormModalProps {
 export function ClientFormModal({ client, onClose }: ClientFormModalProps) {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const { locale } = useLocale()
 
   useEscapeClose(onClose)
 
@@ -96,8 +98,8 @@ export function ClientFormModal({ client, onClose }: ClientFormModalProps) {
                 defaultValue={client?.client_type ?? 'cliente_final'}
                 className="mt-1 w-full rounded-md border border-[#E5E9EF] bg-white px-3 py-2 text-navy outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
               >
-                {Object.entries(CLIENT_TYPE_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
+                {CLIENT_TYPES.map((value) => (
+                  <option key={value} value={value}>{getClientTypeLabel(locale, value)}</option>
                 ))}
               </select>
             </div>

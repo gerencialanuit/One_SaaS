@@ -75,7 +75,7 @@ export async function createQuote(formData: FormData) {
         .from('purchase_orders')
         .select('id, expected_arrival_date, status')
         .in('id', poIds)
-        .neq('status', 'cancelled')
+        .in('status', ['pending', 'partial'])
     : { data: [] }
 
   const poMap = new Map((posRows ?? []).map((po) => [po.id, po]))

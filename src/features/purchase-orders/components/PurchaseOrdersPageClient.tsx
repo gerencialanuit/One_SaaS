@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { SuppliersPanel } from './SuppliersPanel'
 import { PurchaseOrdersTable } from './PurchaseOrdersTable'
 import { PurchaseOrderFormModal } from './PurchaseOrderFormModal'
+import { useLocale } from '@/lib/i18n/LocaleProvider'
 import type { PurchaseOrderWithDetails, ProductOption } from '../types'
 import type { Supplier } from '@/types/database'
 
@@ -22,6 +23,7 @@ export function PurchaseOrdersPageClient({
 }: PurchaseOrdersPageClientProps) {
   const [showNewPO, setShowNewPO] = useState(false)
   const [supplierFilter, setSupplierFilter] = useState('Todos')
+  const { t } = useLocale()
 
   const filteredPOs = useMemo(
     () => (supplierFilter === 'Todos' ? purchaseOrders : purchaseOrders.filter((po) => po.supplier_id === supplierFilter)),
@@ -32,8 +34,8 @@ export function PurchaseOrdersPageClient({
     <div className="p-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-heading text-3xl font-bold text-navy">Compras y Llegadas</h1>
-          <p className="mt-1 text-slate">Órdenes de compra y proveedores</p>
+          <h1 className="font-heading text-3xl font-bold text-navy">{t('purchaseOrders.title')}</h1>
+          <p className="mt-1 text-slate">{t('purchaseOrders.subtitle')}</p>
         </div>
         {canManage && (
           <button
@@ -41,7 +43,7 @@ export function PurchaseOrdersPageClient({
             onClick={() => setShowNewPO(true)}
             className="rounded-lg bg-brand-blue px-5 py-2.5 font-medium text-white transition-colors hover:bg-brand-blue-hover"
           >
-            Nueva orden de compra
+            {t('purchaseOrders.new')}
           </button>
         )}
       </div>
@@ -49,7 +51,7 @@ export function PurchaseOrdersPageClient({
       <div className="mt-6 grid grid-cols-3 gap-6">
         <div className="col-span-2">
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium text-slate">Proveedor:</span>
+            <span className="text-xs font-medium text-slate">{t('purchaseOrders.supplierLabel')}</span>
             <button
               type="button"
               onClick={() => setSupplierFilter('Todos')}
@@ -57,7 +59,7 @@ export function PurchaseOrdersPageClient({
                 supplierFilter === 'Todos' ? 'bg-navy text-white' : 'bg-white text-slate border border-[#E5E9EF] hover:bg-tint-blue'
               }`}
             >
-              Todos
+              {t('purchaseOrders.supplierAll')}
             </button>
             {suppliers.map((s) => (
               <button

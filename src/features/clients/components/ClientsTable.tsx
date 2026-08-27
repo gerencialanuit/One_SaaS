@@ -1,6 +1,7 @@
 'use client'
 
-import { CLIENT_TYPE_LABELS } from '../constants'
+import { getClientTypeLabel } from '../constants'
+import { useLocale } from '@/lib/i18n/LocaleProvider'
 import type { Client } from '@/types/database'
 
 interface ClientsTableProps {
@@ -9,10 +10,12 @@ interface ClientsTableProps {
 }
 
 export function ClientsTable({ clients, onEdit }: ClientsTableProps) {
+  const { t, locale } = useLocale()
+
   if (clients.length === 0) {
     return (
       <div className="rounded-lg border border-[#E5E9EF] bg-white p-8 text-center text-slate">
-        No hay clientes todavía.
+        {t('clients.table.empty')}
       </div>
     )
   }
@@ -22,12 +25,12 @@ export function ClientsTable({ clients, onEdit }: ClientsTableProps) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-[#E5E9EF] text-left text-slate">
-            <th className="px-4 py-3 font-medium">Cliente</th>
-            <th className="px-4 py-3 font-medium">Tipo</th>
-            <th className="px-4 py-3 font-medium">WhatsApp</th>
-            <th className="px-4 py-3 font-medium">Email</th>
-            <th className="px-4 py-3 font-medium">Dirección</th>
-            <th className="px-4 py-3 font-medium">Acciones</th>
+            <th className="px-4 py-3 font-medium">{t('clients.table.client')}</th>
+            <th className="px-4 py-3 font-medium">{t('clients.table.type')}</th>
+            <th className="px-4 py-3 font-medium">{t('clients.table.whatsapp')}</th>
+            <th className="px-4 py-3 font-medium">{t('clients.table.email')}</th>
+            <th className="px-4 py-3 font-medium">{t('clients.table.address')}</th>
+            <th className="px-4 py-3 font-medium">{t('clients.table.actions')}</th>
           </tr>
         </thead>
         <tbody>
@@ -36,7 +39,7 @@ export function ClientsTable({ clients, onEdit }: ClientsTableProps) {
               <td className="px-4 py-3 font-medium text-navy">{client.name}</td>
               <td className="px-4 py-3">
                 <span className="inline-flex items-center rounded-full bg-tint-blue px-2.5 py-0.5 text-xs font-medium text-navy">
-                  {CLIENT_TYPE_LABELS[client.client_type]}
+                  {getClientTypeLabel(locale, client.client_type)}
                 </span>
               </td>
               <td className="px-4 py-3 text-slate">{client.whatsapp ?? '—'}</td>
@@ -48,7 +51,7 @@ export function ClientsTable({ clients, onEdit }: ClientsTableProps) {
                   onClick={() => onEdit(client)}
                   className="font-medium text-brand-blue hover:text-brand-blue-hover"
                 >
-                  Editar
+                  {t('clients.table.edit')}
                 </button>
               </td>
             </tr>

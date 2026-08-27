@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { toggleFavoriteProduct } from '@/actions/favorites'
 import { ProductCard } from './ProductCard'
+import { useLocale } from '@/lib/i18n/LocaleProvider'
 import type { QuoteProductOption } from '../types'
 
 interface ProductCatalogGridProps {
@@ -12,6 +13,7 @@ interface ProductCatalogGridProps {
 }
 
 export function ProductCatalogGrid({ products, cartTotals, onAdd }: ProductCatalogGridProps) {
+  const { t } = useLocale()
   const [category, setCategory] = useState('Todas')
   const [brand, setBrand] = useState('Todas')
   const [search, setSearch] = useState('')
@@ -75,7 +77,7 @@ export function ProductCatalogGrid({ products, cartTotals, onAdd }: ProductCatal
     <div>
       <input
         type="text"
-        placeholder="Buscar por nombre o SKU..."
+        placeholder={t('quoteBuilder.searchPlaceholder')}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="w-full rounded-md border border-[#E5E9EF] bg-white px-4 py-2.5 text-navy placeholder-slate-muted outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
@@ -93,7 +95,7 @@ export function ProductCatalogGrid({ products, cartTotals, onAdd }: ProductCatal
                 : 'rounded-full border border-[#E5E9EF] bg-white px-4 py-1.5 text-sm font-medium text-slate transition-colors hover:bg-tint-blue hover:text-navy'
             }
           >
-            {cat}
+            {cat === 'Todas' ? t('quoteBuilder.categoryAll') : cat}
           </button>
         ))}
         <button
@@ -108,7 +110,7 @@ export function ProductCatalogGrid({ products, cartTotals, onAdd }: ProductCatal
           <svg viewBox="0 0 20 20" fill={onlyFavorites ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5} className="h-4 w-4">
             <path strokeLinecap="round" strokeLinejoin="round" d="M10 2.5l2.35 4.76 5.25.76-3.8 3.7.9 5.23L10 14.5l-4.7 2.45.9-5.23-3.8-3.7 5.25-.76L10 2.5z" />
           </svg>
-          Favoritos
+          {t('quoteBuilder.favorites')}
         </button>
         <button
           type="button"
@@ -119,13 +121,13 @@ export function ProductCatalogGrid({ products, cartTotals, onAdd }: ProductCatal
               : 'rounded-full border border-[#E5E9EF] bg-white px-4 py-1.5 text-sm font-medium text-slate transition-colors hover:bg-tint-blue hover:text-navy'
           }
         >
-          Usados
+          {t('quoteBuilder.used')}
         </button>
       </div>
 
       {brands.length > 1 && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="text-xs font-medium text-slate-muted">Marca:</span>
+          <span className="text-xs font-medium text-slate-muted">{t('quoteBuilder.brandLabel')}</span>
           {brands.map((b) => (
             <button
               key={b}
@@ -137,14 +139,14 @@ export function ProductCatalogGrid({ products, cartTotals, onAdd }: ProductCatal
                   : 'rounded-full border border-[#E5E9EF] bg-white px-3 py-1 text-xs font-medium text-slate transition-colors hover:bg-tint-blue hover:text-navy'
               }
             >
-              {b}
+              {b === 'Todas' ? t('quoteBuilder.brandAll') : b}
             </button>
           ))}
         </div>
       )}
 
       {filtered.length === 0 ? (
-        <p className="mt-6 text-center text-sm text-slate">No hay productos que coincidan.</p>
+        <p className="mt-6 text-center text-sm text-slate">{t('quoteBuilder.noProducts')}</p>
       ) : (
         <div className="mt-4 grid grid-cols-3 gap-4">
           {filtered.map((product) => (

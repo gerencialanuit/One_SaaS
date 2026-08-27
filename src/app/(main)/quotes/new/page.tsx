@@ -1,11 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentProfile } from '@/lib/supabase/profile'
 import { QuoteBuilderForm } from '@/features/quotes/components/QuoteBuilderForm'
+import { getTranslator } from '@/lib/i18n/server'
 import type { IncomingOrder } from '@/features/quotes/utils/estimate'
 
 export default async function NewQuotePage() {
   const supabase = await createClient()
   const profile = await getCurrentProfile()
+  const { t } = await getTranslator()
 
   const [
     { data: clients },
@@ -19,7 +21,7 @@ export default async function NewQuotePage() {
     supabase.from('clients').select('id, name').order('name'),
     supabase
       .from('products')
-      .select('id, name, sku, category, brand, condition, image_url, unit_price')
+      .select('id, name, sku, category, brand, condition, supply_model, image_url, unit_price')
       .eq('is_active', true)
       .neq('condition', 'averiado')
       .order('name'),
@@ -54,7 +56,7 @@ export default async function NewQuotePage() {
         .from('purchase_orders')
         .select('id, expected_arrival_date, status')
         .in('id', poIds)
-        .neq('status', 'cancelled')
+        .in('status', ['pending', 'partial'])
     : { data: [] }
 
   const poMap = new Map((purchaseOrders ?? []).map((po) => [po.id, po]))
@@ -68,8 +70,8 @@ export default async function NewQuotePage() {
 
   return (
     <div className="p-8">
-      <h1 className="font-heading text-3xl font-bold text-navy">Nueva cotización</h1>
-      <p className="mt-1 text-slate">Selecciona cliente, productos y confirma la fecha de entrega</p>
+      <h1 className="font-heading text-3xl font-bold text-navy">{t('quoteNew.title')}</h1>
+      <p className="mt-1 text-slate">{t('quoteNew.subtitle')}</p>
 
       <div className="mt-6">
         <QuoteBuilderForm

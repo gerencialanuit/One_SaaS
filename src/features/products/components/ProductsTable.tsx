@@ -1,26 +1,50 @@
 'use client'
 
+import { useState } from 'react'
 import { toggleProductActive } from '@/actions/products'
 import { InventoryQuantityCell } from './InventoryQuantityCell'
-import type { ProductWithAvailability } from '../types'
+import { PurchaseOrderDetailModal } from './PurchaseOrderDetailModal'
+import { useLocale } from '@/lib/i18n/LocaleProvider'
+import type { TranslationKey } from '@/lib/i18n/translations'
+import type { ProductWithAvailability, ProductOpenPoSummary } from '../types'
 
-const CONDITION_LABELS: Record<string, { label: string; className: string }> = {
-  nuevo: { label: 'Nuevo', className: 'bg-[#038A06]/10 text-[#038A06]' },
-  usado: { label: 'Usado', className: 'bg-brand-yellow/20 text-[#8A6D00]' },
-  averiado: { label: 'Averiado', className: 'bg-red-50 text-red-600' },
+const CONDITION_CLASSNAMES: Record<string, string> = {
+  nuevo: 'bg-[#038A06]/10 text-[#038A06]',
+  usado: 'bg-brand-yellow/20 text-[#8A6D00]',
+  averiado: 'bg-red-50 text-red-600',
+}
+
+const CONDITION_KEYS: Record<string, TranslationKey> = {
+  nuevo: 'products.condition.new',
+  usado: 'products.condition.used',
+  averiado: 'products.condition.damaged',
+}
+
+const SUPPLY_MODEL_CLASSNAMES: Record<string, string> = {
+  inventario: 'bg-tint-blue text-navy',
+  bajo_pedido: 'bg-[#F3F0FF] text-[#6B4FBB]',
+}
+
+const SUPPLY_MODEL_KEYS: Record<string, TranslationKey> = {
+  inventario: 'products.supplyModel.stocked',
+  bajo_pedido: 'products.supplyModel.madeToOrder',
 }
 
 interface ProductsTableProps {
   products: ProductWithAvailability[]
   canManage: boolean
   onEdit: (product: ProductWithAvailability) => void
+  openPurchaseOrders: Record<string, ProductOpenPoSummary>
 }
 
-export function ProductsTable({ products, canManage, onEdit }: ProductsTableProps) {
+export function ProductsTable({ products, canManage, onEdit, openPurchaseOrders }: ProductsTableProps) {
+  const [detailProduct, setDetailProduct] = useState<ProductWithAvailability | null>(null)
+  const { t } = useLocale()
+
   if (products.length === 0) {
     return (
       <div className="rounded-lg border border-[#E5E9EF] bg-white p-8 text-center text-slate">
-        No hay productos todavía.
+        {t('products.table.empty')}
       </div>
     )
   }
@@ -30,23 +54,27 @@ export function ProductsTable({ products, canManage, onEdit }: ProductsTableProp
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-[#E5E9EF] text-left text-slate">
-            <th className="px-4 py-3 font-medium">Producto</th>
-            <th className="px-4 py-3 font-medium">Marca</th>
-            <th className="px-4 py-3 font-medium">Categoría</th>
-            <th className="px-4 py-3 font-medium">Precio</th>
-            <th className="px-4 py-3 font-medium">Costo</th>
-            <th className="px-4 py-3 font-medium">Estado</th>
-            <th className="px-4 py-3 font-medium">Físico</th>
-            <th className="px-4 py-3 font-medium">Comprometido</th>
-            <th className="px-4 py-3 font-medium">Disponibilidad con Cotizaciones</th>
-            {canManage && <th className="px-4 py-3 font-medium">Acciones</th>}
+            <th className="px-4 py-3 font-medium">{t('products.table.product')}</th>
+            <th className="px-4 py-3 font-medium">{t('products.table.brand')}</th>
+            <th className="px-4 py-3 font-medium">{t('products.table.category')}</th>
+            <th className="px-4 py-3 font-medium">{t('products.table.price')}</th>
+            <th className="px-4 py-3 font-medium">{t('products.table.cost')}</th>
+            <th className="px-4 py-3 font-medium">{t('products.table.condition')}</th>
+            <th className="px-4 py-3 font-medium">{t('products.table.supplyModel')}</th>
+            <th className="px-4 py-3 font-medium">{t('products.table.physical')}</th>
+            <th className="px-4 py-3 font-medium">{t('products.table.committed')}</th>
+            <th className="px-4 py-3 font-medium">{t('products.table.availability')}</th>
+            <th className="px-4 py-3 font-medium">{t('products.table.poQuantity')}</th>
+            <th className="px-4 py-3 font-medium">{t('products.table.nextArrival')}</th>
+            {canManage && <th className="px-4 py-3 font-medium">{t('products.table.actions')}</th>}
           </tr>
         </thead>
         <tbody>
           {products.map((product) => {
             const availability = product.availability
             const available = availability?.available_with_quotes ?? 0
-            const isLowStock = available <= product.low_stock_threshold
+            const isLowStock = product.supply_model === 'inventario' && available <= product.low_stock_threshold
+            const poSummary = openPurchaseOrders[product.id]
 
             return (
               <tr key={product.id} className="border-b border-[#E5E9EF] hover:bg-tint-blue/50">
@@ -57,7 +85,7 @@ export function ProductsTable({ products, canManage, onEdit }: ProductsTableProp
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={product.image_url} alt="" className="h-full w-full object-cover" />
                       ) : (
-                        <span className="text-[9px] text-slate-muted">Sin foto</span>
+                        <span className="text-[9px] text-slate-muted">{t('products.table.noPhoto')}</span>
                       )}
                     </div>
                     <div>
@@ -75,8 +103,13 @@ export function ProductsTable({ products, canManage, onEdit }: ProductsTableProp
                   {product.unit_cost != null ? `${product.currency} $${product.unit_cost.toLocaleString('es-CO')}` : '—'}
                 </td>
                 <td className="px-4 py-3">
-                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${CONDITION_LABELS[product.condition]?.className ?? ''}`}>
-                    {CONDITION_LABELS[product.condition]?.label ?? product.condition}
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${CONDITION_CLASSNAMES[product.condition] ?? ''}`}>
+                    {CONDITION_KEYS[product.condition] ? t(CONDITION_KEYS[product.condition]) : product.condition}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${SUPPLY_MODEL_CLASSNAMES[product.supply_model] ?? ''}`}>
+                    {SUPPLY_MODEL_KEYS[product.supply_model] ? t(SUPPLY_MODEL_KEYS[product.supply_model]) : product.supply_model}
                   </span>
                 </td>
                 <td className="px-4 py-3">
@@ -92,11 +125,25 @@ export function ProductsTable({ products, canManage, onEdit }: ProductsTableProp
                     <span className="font-semibold text-navy">{available}</span>
                     {isLowStock && (
                       <span className="inline-flex items-center rounded-full bg-brand-yellow/20 px-2.5 py-0.5 text-xs font-medium text-[#8A6D00]">
-                        Stock bajo
+                        {t('products.table.lowStock')}
                       </span>
                     )}
                   </div>
                 </td>
+                <td className="px-4 py-3">
+                  {poSummary && poSummary.totalQuantity > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => setDetailProduct(product)}
+                      className="font-semibold text-brand-blue hover:text-brand-blue-hover hover:underline"
+                    >
+                      {poSummary.totalQuantity}
+                    </button>
+                  ) : (
+                    <span className="text-slate-muted">—</span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-slate">{poSummary?.nearestDate ?? '—'}</td>
                 {canManage && (
                   <td className="px-4 py-3">
                     <div className="flex gap-3">
@@ -105,14 +152,14 @@ export function ProductsTable({ products, canManage, onEdit }: ProductsTableProp
                         onClick={() => onEdit(product)}
                         className="font-medium text-brand-blue hover:text-brand-blue-hover"
                       >
-                        Editar
+                        {t('products.table.edit')}
                       </button>
                       <button
                         type="button"
                         onClick={() => toggleProductActive(product.id, !product.is_active)}
                         className="font-medium text-slate hover:text-navy"
                       >
-                        {product.is_active ? 'Desactivar' : 'Activar'}
+                        {product.is_active ? t('products.table.deactivate') : t('products.table.activate')}
                       </button>
                     </div>
                   </td>
@@ -122,6 +169,14 @@ export function ProductsTable({ products, canManage, onEdit }: ProductsTableProp
           })}
         </tbody>
       </table>
+
+      {detailProduct && openPurchaseOrders[detailProduct.id] && (
+        <PurchaseOrderDetailModal
+          productName={detailProduct.name}
+          summary={openPurchaseOrders[detailProduct.id]}
+          onClose={() => setDetailProduct(null)}
+        />
+      )}
     </div>
   )
 }

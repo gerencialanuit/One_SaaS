@@ -61,7 +61,24 @@ export function QuoteBuilderForm({
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
-  const productsById = useMemo(() => new Map(products.map((p) => [p.id, p])), [products])
+
+  const nextArrivalByProduct = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const order of incomingOrders) {
+      const current = map.get(order.productId)
+      if (!current || order.expectedArrivalDate < current) {
+        map.set(order.productId, order.expectedArrivalDate)
+      }
+    }
+    return map
+  }, [incomingOrders])
+
+  const productsWithArrival: QuoteProductOption[] = useMemo(
+    () => products.map((p) => ({ ...p, next_arrival_date: nextArrivalByProduct.get(p.id) ?? null })),
+    [products, nextArrivalByProduct]
+  )
+
+  const productsById = useMemo(() => new Map(productsWithArrival.map((p) => [p.id, p])), [productsWithArrival])
 
   const resolvedZones: CartZone[] = useMemo(
     () =>
@@ -266,7 +283,7 @@ export function QuoteBuilderForm({
   return (
     <div className="grid grid-cols-3 gap-6">
       <div className="col-span-2">
-        <ProductCatalogGrid products={products} cartTotals={cartTotals} onAdd={addToActiveZone} />
+        <ProductCatalogGrid products={productsWithArrival} cartTotals={cartTotals} onAdd={addToActiveZone} />
       </div>
 
       <div>

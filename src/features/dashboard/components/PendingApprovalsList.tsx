@@ -1,14 +1,16 @@
 import Link from 'next/link'
+import { getTranslator } from '@/lib/i18n/server'
 import type { QuoteSummary } from '../types'
 
 const currency = (value: number) => `$${value.toLocaleString('es-CO')}`
 
-export function PendingApprovalsList({ quotes }: { quotes: QuoteSummary[] }) {
+export async function PendingApprovalsList({ quotes }: { quotes: QuoteSummary[] }) {
+  const { t } = await getTranslator()
   return (
     <div className="rounded-lg border border-brand-yellow/40 bg-tint-yellow p-6 shadow-sm">
-      <h2 className="font-heading text-lg font-semibold text-navy">Aprobaciones de descuento pendientes</h2>
+      <h2 className="font-heading text-lg font-semibold text-navy">{t('dashboard.pendingApprovals.title')}</h2>
       {quotes.length === 0 ? (
-        <p className="mt-2 text-sm text-slate">No hay aprobaciones pendientes.</p>
+        <p className="mt-2 text-sm text-slate">{t('dashboard.pendingApprovals.empty')}</p>
       ) : (
         <ul className="mt-3 space-y-2">
           {quotes.map((quote) => (

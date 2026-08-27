@@ -39,7 +39,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
   const [{ data: products }, { data: availability }, { data: poItems }, { data: discountRule }] = await Promise.all([
     supabase
       .from('products')
-      .select('id, name, sku, category, brand, condition, image_url, unit_price')
+      .select('id, name, sku, category, brand, condition, supply_model, image_url, unit_price')
       .eq('is_active', true)
       .neq('condition', 'averiado')
       .order('name'),
@@ -55,7 +55,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
 
   const poIds = [...new Set((poItems ?? []).map((row) => row.purchase_order_id))]
   const { data: purchaseOrders } = poIds.length
-    ? await supabase.from('purchase_orders').select('id, expected_arrival_date, status').in('id', poIds).neq('status', 'cancelled')
+    ? await supabase.from('purchase_orders').select('id, expected_arrival_date, status').in('id', poIds).in('status', ['pending', 'partial'])
     : { data: [] }
 
   const poMap = new Map((purchaseOrders ?? []).map((po) => [po.id, po]))

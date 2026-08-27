@@ -1,12 +1,14 @@
 import Link from 'next/link'
+import { getTranslator } from '@/lib/i18n/server'
 import type { LowStockProduct } from '../types'
 
-export function LowStockList({ products }: { products: LowStockProduct[] }) {
+export async function LowStockList({ products }: { products: LowStockProduct[] }) {
+  const { t } = await getTranslator()
   return (
     <div className="rounded-lg border border-[#E5E9EF] bg-white p-6 shadow-sm">
-      <h2 className="font-heading text-lg font-semibold text-navy">Alertas de stock bajo</h2>
+      <h2 className="font-heading text-lg font-semibold text-navy">{t('dashboard.lowStock.title')}</h2>
       {products.length === 0 ? (
-        <p className="mt-2 text-sm text-slate">Todo el inventario está por encima de su umbral.</p>
+        <p className="mt-2 text-sm text-slate">{t('dashboard.lowStock.empty')}</p>
       ) : (
         <ul className="mt-3 space-y-2">
           {products.map((product) => (
@@ -16,14 +18,14 @@ export function LowStockList({ products }: { products: LowStockProduct[] }) {
                 {product.sku && <div className="text-xs text-slate-muted">{product.sku}</div>}
               </div>
               <span className="inline-flex items-center rounded-full bg-brand-yellow/20 px-2.5 py-0.5 text-xs font-medium text-[#8A6D00]">
-                Disponibilidad: {product.available} (umbral {product.threshold})
+                {t('dashboard.lowStock.availability')}: {product.available} ({t('dashboard.lowStock.threshold')} {product.threshold})
               </span>
             </li>
           ))}
         </ul>
       )}
       <Link href="/products" className="mt-3 inline-block text-sm font-medium text-brand-blue hover:text-brand-blue-hover">
-        Ver catálogo completo
+        {t('dashboard.lowStock.viewCatalog')}
       </Link>
     </div>
   )

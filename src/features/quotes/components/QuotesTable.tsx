@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { QUOTE_STATUS_LABELS } from '../constants'
+import { getQuoteStatusLabel } from '../constants'
+import { getTranslator } from '@/lib/i18n/server'
 import type { QuoteWithDetails } from '../types'
 
 const currency = (value: number) => `$${value.toLocaleString('es-CO')}`
@@ -8,11 +9,13 @@ interface QuotesTableProps {
   quotes: QuoteWithDetails[]
 }
 
-export function QuotesTable({ quotes }: QuotesTableProps) {
+export async function QuotesTable({ quotes }: QuotesTableProps) {
+  const { t, locale } = await getTranslator()
+
   if (quotes.length === 0) {
     return (
       <div className="rounded-lg border border-[#E5E9EF] bg-white p-8 text-center text-slate">
-        No hay cotizaciones todavía.
+        {t('quotes.table.empty')}
       </div>
     )
   }
@@ -22,17 +25,17 @@ export function QuotesTable({ quotes }: QuotesTableProps) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-[#E5E9EF] text-left text-slate">
-            <th className="px-4 py-3 font-medium">Cliente</th>
-            <th className="px-4 py-3 font-medium">Proyecto</th>
-            <th className="px-4 py-3 font-medium">Comercial</th>
-            <th className="px-4 py-3 font-medium">Total</th>
-            <th className="px-4 py-3 font-medium">Entrega estimada</th>
-            <th className="px-4 py-3 font-medium">Estado</th>
+            <th className="px-4 py-3 font-medium">{t('quotes.table.client')}</th>
+            <th className="px-4 py-3 font-medium">{t('quotes.table.project')}</th>
+            <th className="px-4 py-3 font-medium">{t('quotes.table.commercial')}</th>
+            <th className="px-4 py-3 font-medium">{t('quotes.table.total')}</th>
+            <th className="px-4 py-3 font-medium">{t('quotes.table.estimatedDelivery')}</th>
+            <th className="px-4 py-3 font-medium">{t('quotes.table.status')}</th>
           </tr>
         </thead>
         <tbody>
           {quotes.map((quote) => {
-            const status = QUOTE_STATUS_LABELS[quote.status] ?? QUOTE_STATUS_LABELS.draft
+            const status = getQuoteStatusLabel(locale, quote.status)
             return (
               <tr key={quote.id} className="border-b border-[#E5E9EF] hover:bg-tint-blue/50">
                 <td className="px-4 py-3 font-medium text-navy">
@@ -46,7 +49,7 @@ export function QuotesTable({ quotes }: QuotesTableProps) {
                   {quote.current_version ? currency(quote.current_version.total) : '—'}
                 </td>
                 <td className="px-4 py-3 text-navy">
-                  {quote.current_version?.estimated_delivery_date ?? 'Sin fecha'}
+                  {quote.current_version?.estimated_delivery_date ?? t('quotes.table.noDate')}
                 </td>
                 <td className="px-4 py-3">
                   <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${status.className}`}>

@@ -20,6 +20,7 @@ export interface Supplier {
 }
 
 export type ProductCondition = 'nuevo' | 'usado' | 'averiado'
+export type ProductSupplyModel = 'inventario' | 'bajo_pedido'
 
 export interface Product {
   id: string
@@ -32,6 +33,7 @@ export interface Product {
   unit_cost: number | null
   currency: string
   condition: ProductCondition
+  supply_model: ProductSupplyModel
   low_stock_threshold: number
   is_active: boolean
   image_url: string | null

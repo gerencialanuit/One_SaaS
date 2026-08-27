@@ -2,15 +2,24 @@
 
 import { useState } from 'react'
 import { receivePurchaseOrder, cancelPurchaseOrder } from '@/actions/purchase-orders'
+import { useLocale } from '@/lib/i18n/LocaleProvider'
+import type { TranslationKey } from '@/lib/i18n/translations'
 import type { PurchaseOrderWithDetails } from '../types'
 
 const currency = (value: number) => `$${value.toLocaleString('es-CO')}`
 
-const STATUS_LABELS: Record<string, { label: string; className: string }> = {
-  pending: { label: 'Pendiente', className: 'bg-brand-yellow/20 text-[#8A6D00]' },
-  partial: { label: 'Parcial', className: 'bg-brand-yellow/20 text-[#8A6D00]' },
-  received: { label: 'Recibida', className: 'bg-[#038A06]/10 text-[#038A06]' },
-  cancelled: { label: 'Cancelada', className: 'bg-red-50 text-red-600' },
+const STATUS_CLASSNAMES: Record<string, string> = {
+  pending: 'bg-brand-yellow/20 text-[#8A6D00]',
+  partial: 'bg-brand-yellow/20 text-[#8A6D00]',
+  received: 'bg-[#038A06]/10 text-[#038A06]',
+  cancelled: 'bg-red-50 text-red-600',
+}
+
+const STATUS_KEYS: Record<string, TranslationKey> = {
+  pending: 'purchaseOrders.status.pending',
+  partial: 'purchaseOrders.status.partial',
+  received: 'purchaseOrders.status.received',
+  cancelled: 'purchaseOrders.status.cancelled',
 }
 
 interface PurchaseOrdersTableProps {
@@ -21,6 +30,7 @@ interface PurchaseOrdersTableProps {
 export function PurchaseOrdersTable({ purchaseOrders, canManage }: PurchaseOrdersTableProps) {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const { t } = useLocale()
 
   async function handleReceive(id: string) {
     setBusyId(id)
@@ -41,7 +51,7 @@ export function PurchaseOrdersTable({ purchaseOrders, canManage }: PurchaseOrder
   if (purchaseOrders.length === 0) {
     return (
       <div className="rounded-lg border border-[#E5E9EF] bg-white p-8 text-center text-slate">
-        No hay órdenes de compra todavía.
+        {t('purchaseOrders.table.empty')}
       </div>
     )
   }
@@ -52,17 +62,18 @@ export function PurchaseOrdersTable({ purchaseOrders, canManage }: PurchaseOrder
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-[#E5E9EF] text-left text-slate">
-            <th className="px-4 py-3 font-medium">Proveedor</th>
-            <th className="px-4 py-3 font-medium">Productos</th>
-            <th className="px-4 py-3 font-medium">Valor total</th>
-            <th className="px-4 py-3 font-medium">Llegada estimada</th>
-            <th className="px-4 py-3 font-medium">Estado</th>
-            {canManage && <th className="px-4 py-3 font-medium">Acciones</th>}
+            <th className="px-4 py-3 font-medium">{t('purchaseOrders.table.supplier')}</th>
+            <th className="px-4 py-3 font-medium">{t('purchaseOrders.table.products')}</th>
+            <th className="px-4 py-3 font-medium">{t('purchaseOrders.table.totalValue')}</th>
+            <th className="px-4 py-3 font-medium">{t('purchaseOrders.table.expectedArrival')}</th>
+            <th className="px-4 py-3 font-medium">{t('purchaseOrders.table.status')}</th>
+            {canManage && <th className="px-4 py-3 font-medium">{t('purchaseOrders.table.actions')}</th>}
           </tr>
         </thead>
         <tbody>
           {purchaseOrders.map((po) => {
-            const status = STATUS_LABELS[po.status] ?? STATUS_LABELS.pending
+            const statusKey = STATUS_KEYS[po.status] ?? STATUS_KEYS.pending
+            const statusClassName = STATUS_CLASSNAMES[po.status] ?? STATUS_CLASSNAMES.pending
             const canReceive = po.status === 'pending' || po.status === 'partial'
             const totalValue = po.items.reduce((sum, item) => sum + item.quantity * (item.unit_cost ?? 0), 0)
 
@@ -75,8 +86,8 @@ export function PurchaseOrdersTable({ purchaseOrders, canManage }: PurchaseOrder
                 <td className="px-4 py-3 font-medium text-navy">{currency(totalValue)}</td>
                 <td className="px-4 py-3 text-navy">{po.expected_arrival_date}</td>
                 <td className="px-4 py-3">
-                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${status.className}`}>
-                    {status.label}
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusClassName}`}>
+                    {t(statusKey)}
                   </span>
                 </td>
                 {canManage && (
@@ -89,7 +100,7 @@ export function PurchaseOrdersTable({ purchaseOrders, canManage }: PurchaseOrder
                           onClick={() => handleReceive(po.id)}
                           className="font-medium text-brand-blue hover:text-brand-blue-hover disabled:opacity-50"
                         >
-                          Recibir
+                          {t('purchaseOrders.table.receive')}
                         </button>
                         <button
                           type="button"
@@ -97,7 +108,7 @@ export function PurchaseOrdersTable({ purchaseOrders, canManage }: PurchaseOrder
                           onClick={() => handleCancel(po.id)}
                           className="font-medium text-slate hover:text-navy disabled:opacity-50"
                         >
-                          Cancelar
+                          {t('purchaseOrders.table.cancel')}
                         </button>
                       </div>
                     )}

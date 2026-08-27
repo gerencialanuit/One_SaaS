@@ -1,3 +1,4 @@
+import { getTranslator } from '@/lib/i18n/server'
 import type { InventoryValueByCategory } from '../types'
 
 const currency = (value: number) => `$${Math.round(value).toLocaleString('es-CO')}`
@@ -37,15 +38,16 @@ function buildSlices(data: InventoryValueByCategory[]): { slices: Slice[]; total
   return { slices, total }
 }
 
-export function InventoryValueChart({ data }: { data: InventoryValueByCategory[] }) {
+export async function InventoryValueChart({ data }: { data: InventoryValueByCategory[] }) {
   const { slices, total } = buildSlices(data)
+  const { t } = await getTranslator()
 
   return (
     <div className="rounded-lg border border-[#E5E9EF] bg-white p-6 shadow-sm">
-      <h2 className="font-heading text-lg font-semibold text-navy">Valor de inventario por categoría</h2>
+      <h2 className="font-heading text-lg font-semibold text-navy">{t('dashboard.inventoryValue.title')}</h2>
 
       {slices.length === 0 ? (
-        <p className="mt-4 text-sm text-slate">Sin inventario valorado todavía.</p>
+        <p className="mt-4 text-sm text-slate">{t('dashboard.inventoryValue.empty')}</p>
       ) : (
         <div className="mt-4 flex items-center gap-8">
           <div className="relative h-40 w-40 shrink-0">
@@ -65,7 +67,7 @@ export function InventoryValueChart({ data }: { data: InventoryValueByCategory[]
               ))}
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-[10px] font-medium uppercase tracking-wide text-slate-muted">Total</span>
+              <span className="text-[10px] font-medium uppercase tracking-wide text-slate-muted">{t('dashboard.inventoryValue.total')}</span>
               <span className="text-sm font-bold text-navy">{currency(total)}</span>
             </div>
           </div>

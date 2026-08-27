@@ -18,10 +18,12 @@ const productSchema = z.object({
   unit_cost: z.coerce.number().nonnegative('El costo no puede ser negativo').optional(),
   currency: z.string().trim().min(1).default('COP'),
   condition: z.enum(['nuevo', 'usado', 'averiado']).default('nuevo'),
+  supply_model: z.enum(['inventario', 'bajo_pedido']).default('inventario'),
   low_stock_threshold: z.coerce.number().int().nonnegative('El umbral no puede ser negativo'),
 })
 
 function parseProductForm(formData: FormData) {
+  const supplyModel = formData.get('supply_model') || 'inventario'
   return productSchema.safeParse({
     sku: formData.get('sku') || undefined,
     name: formData.get('name'),
@@ -32,7 +34,8 @@ function parseProductForm(formData: FormData) {
     unit_cost: formData.get('unit_cost') || undefined,
     currency: formData.get('currency') || 'COP',
     condition: formData.get('condition') || 'nuevo',
-    low_stock_threshold: formData.get('low_stock_threshold') || '5',
+    supply_model: supplyModel,
+    low_stock_threshold: formData.get('low_stock_threshold') || (supplyModel === 'bajo_pedido' ? '0' : '5'),
   })
 }
 
@@ -99,6 +102,7 @@ export async function createProduct(formData: FormData) {
       unit_cost: parsed.data.unit_cost ?? null,
       currency: parsed.data.currency,
       condition: parsed.data.condition,
+      supply_model: parsed.data.supply_model,
       low_stock_threshold: parsed.data.low_stock_threshold,
       image_url: imageUrl,
     })
@@ -151,6 +155,7 @@ export async function updateProduct(productId: string, formData: FormData) {
       unit_cost: parsed.data.unit_cost ?? null,
       currency: parsed.data.currency,
       condition: parsed.data.condition,
+      supply_model: parsed.data.supply_model,
       low_stock_threshold: parsed.data.low_stock_threshold,
       ...(imageUrl ? { image_url: imageUrl } : {}),
       updated_at: new Date().toISOString(),

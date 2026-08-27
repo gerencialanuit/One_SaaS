@@ -1,34 +1,37 @@
 import Link from 'next/link'
+import { getTranslator } from '@/lib/i18n/server'
+import { t, type Locale } from '@/lib/i18n/translations'
 import type { UpcomingArrival } from '../types'
 
-function ArrivalCountdown({ days }: { days: number }) {
+function ArrivalCountdown({ days, locale }: { days: number; locale: Locale }) {
   if (days < 0) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
-        Vencida hace {Math.abs(days)} día{Math.abs(days) === 1 ? '' : 's'}
+        {t(locale, 'dashboard.upcomingArrivals.overdue', { n: Math.abs(days) })}
       </span>
     )
   }
   if (days === 0) {
     return (
       <span className="inline-flex items-center rounded-full bg-brand-yellow/20 px-2 py-0.5 text-xs font-semibold text-[#8A6D00]">
-        Llega hoy
+        {t(locale, 'dashboard.upcomingArrivals.dueToday')}
       </span>
     )
   }
   return (
     <span className="text-xs text-slate-muted">
-      Faltan {days} día{days === 1 ? '' : 's'}
+      {t(locale, 'dashboard.upcomingArrivals.daysLeft', { n: days })}
     </span>
   )
 }
 
-export function UpcomingArrivalsList({ arrivals }: { arrivals: UpcomingArrival[] }) {
+export async function UpcomingArrivalsList({ arrivals }: { arrivals: UpcomingArrival[] }) {
+  const { t: tr, locale } = await getTranslator()
   return (
     <div className="rounded-lg border border-[#E5E9EF] bg-white p-6 shadow-sm">
-      <h2 className="font-heading text-lg font-semibold text-navy">Próximas llegadas</h2>
+      <h2 className="font-heading text-lg font-semibold text-navy">{tr('dashboard.upcomingArrivals.title')}</h2>
       {arrivals.length === 0 ? (
-        <p className="mt-2 text-sm text-slate">No hay órdenes de compra pendientes.</p>
+        <p className="mt-2 text-sm text-slate">{tr('dashboard.upcomingArrivals.empty')}</p>
       ) : (
         <ul className="mt-3 space-y-2">
           {arrivals.map((arrival) => (
@@ -41,7 +44,7 @@ export function UpcomingArrivalsList({ arrivals }: { arrivals: UpcomingArrival[]
                 <span className="text-slate">{arrival.expectedArrivalDate}</span>
               </div>
               <div className="mt-1">
-                <ArrivalCountdown days={arrival.daysUntilArrival} />
+                <ArrivalCountdown days={arrival.daysUntilArrival} locale={locale} />
               </div>
               <div className="mt-1 text-slate-muted">{arrival.itemsSummary}</div>
             </li>
@@ -49,7 +52,7 @@ export function UpcomingArrivalsList({ arrivals }: { arrivals: UpcomingArrival[]
         </ul>
       )}
       <Link href="/purchase-orders" className="mt-3 inline-block text-sm font-medium text-brand-blue hover:text-brand-blue-hover">
-        Ver todas las órdenes de compra
+        {tr('dashboard.upcomingArrivals.viewAll')}
       </Link>
     </div>
   )

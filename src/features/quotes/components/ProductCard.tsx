@@ -1,3 +1,5 @@
+import { getAvailabilityLabel, type AvailabilityTone } from '../utils/availability-label'
+import { useLocale } from '@/lib/i18n/LocaleProvider'
 import type { QuoteProductOption } from '../types'
 
 const currency = (value: number) => `$${value.toLocaleString('es-CO')}`
@@ -10,23 +12,40 @@ interface ProductCardProps {
   onToggleFavorite: () => void
 }
 
-function AvailabilityBadge({ available }: { available: number }) {
-  const className =
-    available <= 0
-      ? 'bg-red-50 text-red-600'
-      : available < 5
-        ? 'bg-brand-yellow/20 text-[#8A6D00]'
-        : 'bg-[#038A06]/10 text-[#038A06]'
-  const label = available <= 0 ? 'Sin stock' : `Disp: ${available}`
+const TONE_CLASSES: Record<AvailabilityTone, string> = {
+  ok: 'bg-[#038A06]/10 text-[#038A06]',
+  low: 'bg-brand-yellow/20 text-[#8A6D00]',
+  warn: 'bg-brand-yellow/20 text-[#8A6D00]',
+  alert: 'bg-red-50 text-red-600',
+  info: 'bg-tint-blue text-navy',
+}
+
+function AvailabilityBadge({ product }: { product: QuoteProductOption }) {
+  const { t, locale } = useLocale()
+  const { label, tone } = getAvailabilityLabel(product.available_with_quotes, product.supply_model, product.next_arrival_date, locale)
+
+  if (product.available_with_quotes <= 0) {
+    return (
+      <div className="flex flex-col items-end gap-1">
+        <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
+          {t('quoteBuilder.outOfStock')}
+        </span>
+        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${TONE_CLASSES[tone]}`}>
+          {label}
+        </span>
+      </div>
+    )
+  }
 
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${className}`}>
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${TONE_CLASSES[tone]}`}>
       {label}
     </span>
   )
 }
 
 export function ProductCard({ product, quantityInCart, onAdd, isFavorite, onToggleFavorite }: ProductCardProps) {
+  const { t } = useLocale()
   return (
     <div className="overflow-hidden rounded-lg border border-[#E5E9EF] bg-white shadow-sm">
       <div className="relative flex h-28 items-center justify-center bg-tint-blue">
@@ -44,7 +63,7 @@ export function ProductCard({ product, quantityInCart, onAdd, isFavorite, onTogg
             e.stopPropagation()
             onToggleFavorite()
           }}
-          aria-label={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+          aria-label={isFavorite ? t('quoteBuilder.removeFavorite') : t('quoteBuilder.addFavorite')}
           className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-sm transition-colors hover:bg-white"
         >
           <svg
@@ -64,9 +83,9 @@ export function ProductCard({ product, quantityInCart, onAdd, isFavorite, onTogg
         {(product.brand || product.sku) && (
           <div className="text-xs text-slate-muted">{[product.brand, product.sku].filter(Boolean).join(' · ')}</div>
         )}
-        <div className="mt-2 flex items-center justify-between">
+        <div className="mt-2 flex items-start justify-between">
           <span className="font-heading font-semibold text-navy">{currency(product.unit_price)}</span>
-          <AvailabilityBadge available={product.available_with_quotes} />
+          <AvailabilityBadge product={product} />
         </div>
 
         <button
@@ -78,7 +97,7 @@ export function ProductCard({ product, quantityInCart, onAdd, isFavorite, onTogg
               : 'border-[#E5E9EF] hover:border-navy hover:bg-tint-blue'
           }`}
         >
-          {quantityInCart > 0 ? `+ Agregar (${quantityInCart} en carrito)` : '+ Agregar'}
+          {quantityInCart > 0 ? `${t('quoteBuilder.addToCart')} (${quantityInCart} ${t('quoteBuilder.inCart')})` : t('quoteBuilder.addToCart')}
         </button>
       </div>
     </div>

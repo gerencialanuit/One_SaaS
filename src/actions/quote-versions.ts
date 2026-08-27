@@ -81,7 +81,7 @@ export async function createQuoteVersion(quoteId: string, formData: FormData) {
 
   const poIds = [...new Set((poItemsRows ?? []).map((row) => row.purchase_order_id))]
   const { data: posRows } = poIds.length
-    ? await supabase.from('purchase_orders').select('id, expected_arrival_date, status').in('id', poIds).neq('status', 'cancelled')
+    ? await supabase.from('purchase_orders').select('id, expected_arrival_date, status').in('id', poIds).in('status', ['pending', 'partial'])
     : { data: [] }
 
   const poMap = new Map((posRows ?? []).map((po) => [po.id, po]))

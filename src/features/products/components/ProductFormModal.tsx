@@ -15,6 +15,7 @@ export function ProductFormModal({ product, suppliers, onClose }: ProductFormMod
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [imagePreview, setImagePreview] = useState<string | null>(product?.image_url ?? null)
+  const [supplyModel, setSupplyModel] = useState(product?.supply_model ?? 'inventario')
 
   useEscapeClose(onClose)
 
@@ -180,7 +181,7 @@ export function ProductFormModal({ product, suppliers, onClose }: ProductFormMod
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label htmlFor="condition" className="block text-sm font-medium text-navy">Estado</label>
               <select
@@ -195,15 +196,32 @@ export function ProductFormModal({ product, suppliers, onClose }: ProductFormMod
               </select>
             </div>
             <div>
+              <label htmlFor="supply_model" className="block text-sm font-medium text-navy">Abastecimiento</label>
+              <select
+                id="supply_model"
+                name="supply_model"
+                value={supplyModel}
+                onChange={(e) => setSupplyModel(e.target.value as 'inventario' | 'bajo_pedido')}
+                className="mt-1 w-full rounded-md border border-[#E5E9EF] bg-white px-3 py-2 text-navy outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
+              >
+                <option value="inventario">Modelo de inventarios</option>
+                <option value="bajo_pedido">Bajo pedido</option>
+              </select>
+            </div>
+            <div>
               <label htmlFor="low_stock_threshold" className="block text-sm font-medium text-navy">Umbral stock bajo</label>
               <input
                 id="low_stock_threshold"
                 name="low_stock_threshold"
                 type="number"
                 min="0"
+                disabled={supplyModel === 'bajo_pedido'}
                 defaultValue={product?.low_stock_threshold ?? 5}
-                className="mt-1 w-full rounded-md border border-[#E5E9EF] bg-white px-3 py-2 text-navy outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
+                className="mt-1 w-full rounded-md border border-[#E5E9EF] bg-white px-3 py-2 text-navy outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 disabled:bg-tint-blue/40 disabled:text-slate-muted"
               />
+              {supplyModel === 'bajo_pedido' && (
+                <p className="mt-1 text-xs text-slate-muted">No aplica: este producto no se mantiene en inventario.</p>
+              )}
             </div>
           </div>
 

@@ -148,7 +148,7 @@ export function ProductCatalogGrid({ products, cartTotals, onAdd }: ProductCatal
       {filtered.length === 0 ? (
         <p className="mt-6 text-center text-sm text-slate">{t('quoteBuilder.noProducts')}</p>
       ) : (
-        <div className="mt-4 grid grid-cols-3 gap-4">
+        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {filtered.map((product) => (
             <ProductCard
               key={product.id}

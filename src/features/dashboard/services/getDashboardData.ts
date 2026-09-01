@@ -40,7 +40,7 @@ export async function getDashboardData(): Promise<DashboardData> {
         .select('id, expected_arrival_date, supplier:suppliers(name), items:purchase_order_items(quantity, product:products(name))')
         .eq('status', 'pending')
         .order('expected_arrival_date', { ascending: true }),
-      supabase.from('products').select('id, category, unit_price, unit_cost').eq('is_active', true),
+      supabase.from('products').select('id, unit_price, unit_cost, category:categories(name)').eq('is_active', true),
     ])
 
   const quantityOnHandMap = new Map((availabilityRaw ?? []).map((a) => [a.product_id, a.quantity_on_hand]))
@@ -49,7 +49,8 @@ export async function getDashboardData(): Promise<DashboardData> {
     const quantityOnHand = quantityOnHandMap.get(p.id) ?? 0
     const unitValue = p.unit_cost ?? p.unit_price
     const value = quantityOnHand * unitValue
-    inventoryValueMap.set(p.category, (inventoryValueMap.get(p.category) ?? 0) + value)
+    const categoryName = (p.category as unknown as { name: string } | null)?.name ?? '—'
+    inventoryValueMap.set(categoryName, (inventoryValueMap.get(categoryName) ?? 0) + value)
   }
   const inventoryValueByCategory: InventoryValueByCategory[] = Array.from(inventoryValueMap.entries())
     .map(([category, value]) => ({ category, value }))

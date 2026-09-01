@@ -48,7 +48,7 @@ export function ProductCard({ product, quantityInCart, onAdd, isFavorite, onTogg
   const { t } = useLocale()
   return (
     <div className="overflow-hidden rounded-lg border border-[#E5E9EF] bg-white shadow-sm">
-      <div className="relative flex h-28 items-center justify-center bg-tint-blue">
+      <div className="relative flex aspect-square items-center justify-center bg-tint-blue">
         {product.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" />

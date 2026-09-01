@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentProfile, hasRole } from '@/lib/supabase/profile'
+import { setProductAttributeValues } from './attributes'
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp']
@@ -11,8 +12,8 @@ const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp']
 const productSchema = z.object({
   sku: z.string().trim().optional(),
   name: z.string().trim().min(1, 'El nombre es requerido'),
-  category: z.string().trim().min(1, 'La categoría es requerida'),
-  brand: z.string().trim().optional(),
+  category_id: z.string().trim().min(1, 'La categoría es requerida'),
+  brand_id: z.string().trim().optional(),
   supplier_id: z.string().trim().optional(),
   unit_price: z.coerce.number().positive('El precio debe ser mayor a 0'),
   unit_cost: z.coerce.number().nonnegative('El costo no puede ser negativo').optional(),
@@ -20,6 +21,7 @@ const productSchema = z.object({
   condition: z.enum(['nuevo', 'usado', 'averiado']).default('nuevo'),
   supply_model: z.enum(['inventario', 'bajo_pedido']).default('inventario'),
   low_stock_threshold: z.coerce.number().int().nonnegative('El umbral no puede ser negativo'),
+  reference_url: z.string().trim().url('La URL no es válida').optional(),
 })
 
 function parseProductForm(formData: FormData) {
@@ -27,8 +29,8 @@ function parseProductForm(formData: FormData) {
   return productSchema.safeParse({
     sku: formData.get('sku') || undefined,
     name: formData.get('name'),
-    category: formData.get('category'),
-    brand: formData.get('brand') || undefined,
+    category_id: formData.get('category_id'),
+    brand_id: formData.get('brand_id') || undefined,
     supplier_id: formData.get('supplier_id') || undefined,
     unit_price: formData.get('unit_price'),
     unit_cost: formData.get('unit_cost') || undefined,
@@ -36,6 +38,7 @@ function parseProductForm(formData: FormData) {
     condition: formData.get('condition') || 'nuevo',
     supply_model: supplyModel,
     low_stock_threshold: formData.get('low_stock_threshold') || (supplyModel === 'bajo_pedido' ? '0' : '5'),
+    reference_url: formData.get('reference_url') || undefined,
   })
 }
 
@@ -95,8 +98,8 @@ export async function createProduct(formData: FormData) {
     .insert({
       sku: parsed.data.sku || null,
       name: parsed.data.name,
-      category: parsed.data.category,
-      brand: parsed.data.brand || null,
+      category_id: parsed.data.category_id,
+      brand_id: parsed.data.brand_id || null,
       supplier_id: parsed.data.supplier_id || null,
       unit_price: parsed.data.unit_price,
       unit_cost: parsed.data.unit_cost ?? null,
@@ -105,6 +108,7 @@ export async function createProduct(formData: FormData) {
       supply_model: parsed.data.supply_model,
       low_stock_threshold: parsed.data.low_stock_threshold,
       image_url: imageUrl,
+      reference_url: parsed.data.reference_url || null,
     })
     .select('id')
     .single()
@@ -119,6 +123,11 @@ export async function createProduct(formData: FormData) {
 
   if (inventoryError) {
     return { error: inventoryError.message }
+  }
+
+  const { error: attributesError } = await setProductAttributeValues(product.id, formData)
+  if (attributesError) {
+    return { error: attributesError }
   }
 
   revalidatePath('/products')
@@ -148,8 +157,8 @@ export async function updateProduct(productId: string, formData: FormData) {
     .update({
       sku: parsed.data.sku || null,
       name: parsed.data.name,
-      category: parsed.data.category,
-      brand: parsed.data.brand || null,
+      category_id: parsed.data.category_id,
+      brand_id: parsed.data.brand_id || null,
       supplier_id: parsed.data.supplier_id || null,
       unit_price: parsed.data.unit_price,
       unit_cost: parsed.data.unit_cost ?? null,
@@ -157,6 +166,7 @@ export async function updateProduct(productId: string, formData: FormData) {
       condition: parsed.data.condition,
       supply_model: parsed.data.supply_model,
       low_stock_threshold: parsed.data.low_stock_threshold,
+      reference_url: parsed.data.reference_url || null,
       ...(imageUrl ? { image_url: imageUrl } : {}),
       updated_at: new Date().toISOString(),
     })
@@ -164,6 +174,11 @@ export async function updateProduct(productId: string, formData: FormData) {
 
   if (error) {
     return { error: error.message }
+  }
+
+  const { error: attributesError } = await setProductAttributeValues(productId, formData)
+  if (attributesError) {
+    return { error: attributesError }
   }
 
   revalidatePath('/products')
@@ -188,4 +203,183 @@ export async function toggleProductActive(productId: string, isActive: boolean) 
 
   revalidatePath('/products')
   return { success: true }
+}
+
+export interface BulkProductChanges {
+  category_id?: string
+  brand_id?: string | null
+  supplier_id?: string | null
+  is_active?: boolean
+}
+
+export async function bulkUpdateProducts(productIds: string[], changes: BulkProductChanges) {
+  const profile = await getCurrentProfile()
+  if (!hasRole(profile, 'inventarios')) {
+    return { error: 'No tienes permiso para editar productos' }
+  }
+  if (productIds.length === 0) {
+    return { error: 'No hay productos seleccionados' }
+  }
+
+  const payload: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  if (changes.category_id) payload.category_id = changes.category_id
+  if (changes.brand_id !== undefined) payload.brand_id = changes.brand_id
+  if (changes.supplier_id !== undefined) payload.supplier_id = changes.supplier_id
+  if (changes.is_active !== undefined) payload.is_active = changes.is_active
+
+  const supabase = await createClient()
+  const { error } = await supabase.from('products').update(payload).in('id', productIds)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath('/products')
+  return { success: true }
+}
+
+export interface ImportProductRow {
+  sku: string
+  name: string
+  category: string
+  brand: string
+  condition: string
+  supply_model: string
+  currency: string
+  unit_price: string
+  unit_cost: string
+  low_stock_threshold: string
+  is_active: string
+  reference_url: string
+}
+
+export interface ImportProductsResult {
+  created: number
+  updated: number
+  failed: number
+  errors: string[]
+}
+
+export async function importProducts(rows: ImportProductRow[]): Promise<{ error: string } | ({ success: true } & ImportProductsResult)> {
+  const profile = await getCurrentProfile()
+  if (!hasRole(profile, 'inventarios')) {
+    return { error: 'No tienes permiso para importar productos' }
+  }
+  if (rows.length === 0) {
+    return { error: 'El archivo no tiene filas para importar' }
+  }
+
+  const supabase = await createClient()
+
+  const categoryNames = [...new Set(rows.map((r) => r.category?.trim()).filter((v): v is string => !!v))]
+  const { data: existingCategories } = await supabase.from('categories').select('id, name').is('parent_id', null)
+  const categoryMap = new Map((existingCategories ?? []).map((c) => [c.name.toLowerCase(), c.id]))
+
+  const missingCategoryNames = categoryNames.filter((name) => !categoryMap.has(name.toLowerCase()))
+  if (missingCategoryNames.length > 0) {
+    const { data: createdCategories, error: categoryError } = await supabase
+      .from('categories')
+      .insert(missingCategoryNames.map((name) => ({ name })))
+      .select('id, name')
+    if (categoryError) {
+      return { error: `No se pudieron crear las categorías nuevas: ${categoryError.message}` }
+    }
+    for (const c of createdCategories ?? []) {
+      categoryMap.set(c.name.toLowerCase(), c.id)
+    }
+  }
+
+  const brandNames = [...new Set(rows.map((r) => r.brand?.trim()).filter((v): v is string => !!v))]
+  const { data: existingBrands } = await supabase.from('brands').select('id, name')
+  const brandMap = new Map((existingBrands ?? []).map((b) => [b.name.toLowerCase(), b.id]))
+
+  const missingBrandNames = brandNames.filter((name) => !brandMap.has(name.toLowerCase()))
+  if (missingBrandNames.length > 0) {
+    const { data: createdBrands, error: brandError } = await supabase
+      .from('brands')
+      .insert(missingBrandNames.map((name) => ({ name })))
+      .select('id, name')
+    if (brandError) {
+      return { error: `No se pudieron crear las marcas nuevas: ${brandError.message}` }
+    }
+    for (const b of createdBrands ?? []) {
+      brandMap.set(b.name.toLowerCase(), b.id)
+    }
+  }
+
+  const skus = rows.map((r) => r.sku?.trim()).filter((v): v is string => !!v)
+  const { data: existingProducts } = skus.length
+    ? await supabase.from('products').select('id, sku').in('sku', skus)
+    : { data: [] }
+  const productIdBySku = new Map((existingProducts ?? []).filter((p) => p.sku).map((p) => [p.sku as string, p.id]))
+
+  const result: ImportProductsResult = { created: 0, updated: 0, failed: 0, errors: [] }
+
+  for (const row of rows) {
+    const rowLabel = row.name?.trim() || row.sku?.trim() || 'fila sin nombre'
+    const categoryId = categoryMap.get(row.category?.trim().toLowerCase() ?? '')
+
+    if (!categoryId) {
+      result.failed++
+      result.errors.push(`${rowLabel}: falta la categoría`)
+      continue
+    }
+
+    const unitPrice = Number(row.unit_price)
+    if (!row.name?.trim() || !Number.isFinite(unitPrice) || unitPrice <= 0) {
+      result.failed++
+      result.errors.push(`${rowLabel}: nombre o precio inválido`)
+      continue
+    }
+
+    const condition = (['nuevo', 'usado', 'averiado'].includes(row.condition?.trim()) ? row.condition.trim() : 'nuevo') as
+      | 'nuevo'
+      | 'usado'
+      | 'averiado'
+    const supplyModel = (['inventario', 'bajo_pedido'].includes(row.supply_model?.trim()) ? row.supply_model.trim() : 'inventario') as
+      | 'inventario'
+      | 'bajo_pedido'
+    const unitCost = row.unit_cost?.trim() ? Number(row.unit_cost) : null
+    const lowStockThreshold = row.low_stock_threshold?.trim() ? Number(row.low_stock_threshold) : 5
+    const isActive = row.is_active?.trim() ? ['true', '1', 'si', 'sí', 'activo'].includes(row.is_active.trim().toLowerCase()) : true
+
+    const payload = {
+      sku: row.sku?.trim() || null,
+      name: row.name.trim(),
+      category_id: categoryId,
+      brand_id: row.brand?.trim() ? (brandMap.get(row.brand.trim().toLowerCase()) ?? null) : null,
+      condition,
+      supply_model: supplyModel,
+      currency: row.currency?.trim() || 'COP',
+      unit_price: unitPrice,
+      unit_cost: unitCost,
+      low_stock_threshold: Number.isFinite(lowStockThreshold) ? lowStockThreshold : 5,
+      is_active: isActive,
+      reference_url: row.reference_url?.trim() || null,
+    }
+
+    const existingId = row.sku?.trim() ? productIdBySku.get(row.sku.trim()) : undefined
+
+    if (existingId) {
+      const { error } = await supabase.from('products').update(payload).eq('id', existingId)
+      if (error) {
+        result.failed++
+        result.errors.push(`${rowLabel}: ${error.message}`)
+      } else {
+        result.updated++
+      }
+    } else {
+      const { data: newProduct, error } = await supabase.from('products').insert(payload).select('id').single()
+      if (error || !newProduct) {
+        result.failed++
+        result.errors.push(`${rowLabel}: ${error?.message ?? 'no se pudo crear'}`)
+      } else {
+        await supabase.from('inventory').insert({ product_id: newProduct.id, quantity_on_hand: 0 })
+        result.created++
+      }
+    }
+  }
+
+  revalidatePath('/products')
+  return { success: true, ...result }
 }

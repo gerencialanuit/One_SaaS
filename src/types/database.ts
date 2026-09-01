@@ -19,6 +19,19 @@ export interface Supplier {
   created_at: string
 }
 
+export interface Category {
+  id: string
+  name: string
+  parent_id: string | null
+  created_at: string
+}
+
+export interface Brand {
+  id: string
+  name: string
+  created_at: string
+}
+
 export type ProductCondition = 'nuevo' | 'usado' | 'averiado'
 export type ProductSupplyModel = 'inventario' | 'bajo_pedido'
 
@@ -26,8 +39,8 @@ export interface Product {
   id: string
   sku: string | null
   name: string
-  category: string
-  brand: string | null
+  category_id: string
+  brand_id: string | null
   supplier_id: string | null
   unit_price: number
   unit_cost: number | null
@@ -37,8 +50,22 @@ export interface Product {
   low_stock_threshold: number
   is_active: boolean
   image_url: string | null
+  reference_url: string | null
   created_at: string
   updated_at: string
+}
+
+export interface ProductAttribute {
+  id: string
+  name: string
+  created_at: string
+}
+
+export interface ProductAttributeValue {
+  id: string
+  product_id: string
+  attribute_id: string
+  value: string
 }
 
 export interface Inventory {
@@ -213,10 +240,30 @@ export interface Database {
         Insert: Omit<Supplier, 'id' | 'created_at'> & { id?: string }
         Update: Partial<Omit<Supplier, 'id'>>
       }
+      categories: {
+        Row: Category
+        Insert: Omit<Category, 'id' | 'created_at'> & { id?: string }
+        Update: Partial<Omit<Category, 'id' | 'created_at'>>
+      }
+      brands: {
+        Row: Brand
+        Insert: Omit<Brand, 'id' | 'created_at'> & { id?: string }
+        Update: Partial<Omit<Brand, 'id' | 'created_at'>>
+      }
       products: {
         Row: Product
         Insert: Omit<Product, 'id' | 'created_at' | 'updated_at'> & { id?: string }
         Update: Partial<Omit<Product, 'id' | 'created_at'>>
+      }
+      product_attributes: {
+        Row: ProductAttribute
+        Insert: Omit<ProductAttribute, 'id' | 'created_at'> & { id?: string }
+        Update: Partial<Omit<ProductAttribute, 'id' | 'created_at'>>
+      }
+      product_attribute_values: {
+        Row: ProductAttributeValue
+        Insert: Omit<ProductAttributeValue, 'id'> & { id?: string }
+        Update: Partial<Omit<ProductAttributeValue, 'id'>>
       }
       inventory: {
         Row: Inventory

@@ -3,19 +3,28 @@
 import { useState } from 'react'
 import { createProduct, updateProduct } from '@/actions/products'
 import { useEscapeClose } from '@/shared/hooks/useEscapeClose'
+import { buildCategoryTree, flattenCategoryTree } from '../utils/category-tree'
 import type { ProductWithAvailability, SupplierOption } from '../types'
+import type { Category, Brand, ProductAttribute } from '@/types/database'
 
 interface ProductFormModalProps {
   product: ProductWithAvailability | null
   suppliers: SupplierOption[]
+  categories: Category[]
+  brands: Brand[]
+  attributes: ProductAttribute[]
   onClose: () => void
 }
 
-export function ProductFormModal({ product, suppliers, onClose }: ProductFormModalProps) {
+export function ProductFormModal({ product, suppliers, categories, brands, attributes, onClose }: ProductFormModalProps) {
+  const flattenedCategories = flattenCategoryTree(buildCategoryTree(categories))
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [imagePreview, setImagePreview] = useState<string | null>(product?.image_url ?? null)
   const [supplyModel, setSupplyModel] = useState(product?.supply_model ?? 'inventario')
+  const [attributeValues, setAttributeValues] = useState<Record<string, string>>(
+    () => Object.fromEntries((product?.attribute_values ?? []).map((v) => [v.attribute_id, v.value]))
+  )
 
   useEscapeClose(onClose)
 
@@ -29,6 +38,11 @@ export function ProductFormModal({ product, suppliers, onClose }: ProductFormMod
   async function handleSubmit(formData: FormData) {
     setLoading(true)
     setError(null)
+
+    formData.set(
+      'attribute_values',
+      JSON.stringify(Object.entries(attributeValues).map(([attribute_id, value]) => ({ attribute_id, value })))
+    )
 
     const result = product
       ? await updateProduct(product.id, formData)
@@ -99,29 +113,48 @@ export function ProductFormModal({ product, suppliers, onClose }: ProductFormMod
             </div>
           </div>
 
+          <div>
+            <label htmlFor="reference_url" className="block text-sm font-medium text-navy">URL de referencia</label>
+            <input
+              id="reference_url"
+              name="reference_url"
+              type="url"
+              placeholder="https://fabricante.com/producto"
+              defaultValue={product?.reference_url ?? ''}
+              className="mt-1 w-full rounded-md border border-[#E5E9EF] bg-white px-3 py-2 text-navy placeholder-slate-muted outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
+            />
+            <p className="mt-1 text-xs text-slate-muted">Link a la ficha del producto en la web del fabricante o proveedor (opcional).</p>
+          </div>
+
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label htmlFor="category" className="block text-sm font-medium text-navy">Categoría</label>
-              <input
-                id="category"
-                name="category"
-                type="text"
+              <label htmlFor="category_id" className="block text-sm font-medium text-navy">Categoría</label>
+              <select
+                id="category_id"
+                name="category_id"
                 required
-                placeholder="Cámaras, sensores, automatización..."
-                defaultValue={product?.category ?? ''}
-                className="mt-1 w-full rounded-md border border-[#E5E9EF] bg-white px-3 py-2 text-navy placeholder-slate-muted outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
-              />
+                defaultValue={product?.category_id ?? ''}
+                className="mt-1 w-full rounded-md border border-[#E5E9EF] bg-white px-3 py-2 text-navy outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
+              >
+                <option value="">Selecciona una categoría</option>
+                {flattenedCategories.map(({ category: c, depth }) => (
+                  <option key={c.id} value={c.id}>{'—'.repeat(depth)} {c.name}</option>
+                ))}
+              </select>
             </div>
             <div>
-              <label htmlFor="brand" className="block text-sm font-medium text-navy">Marca</label>
-              <input
-                id="brand"
-                name="brand"
-                type="text"
-                placeholder="Hikvision, Ajax..."
-                defaultValue={product?.brand ?? ''}
-                className="mt-1 w-full rounded-md border border-[#E5E9EF] bg-white px-3 py-2 text-navy placeholder-slate-muted outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
-              />
+              <label htmlFor="brand_id" className="block text-sm font-medium text-navy">Marca</label>
+              <select
+                id="brand_id"
+                name="brand_id"
+                defaultValue={product?.brand_id ?? ''}
+                className="mt-1 w-full rounded-md border border-[#E5E9EF] bg-white px-3 py-2 text-navy outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
+              >
+                <option value="">Sin marca</option>
+                {brands.map((b) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label htmlFor="supplier_id" className="block text-sm font-medium text-navy">Proveedor</label>
@@ -224,6 +257,26 @@ export function ProductFormModal({ product, suppliers, onClose }: ProductFormMod
               )}
             </div>
           </div>
+
+          {attributes.length > 0 && (
+            <div>
+              <span className="block text-sm font-medium text-navy">Atributos</span>
+              <div className="mt-2 grid grid-cols-3 gap-4">
+                {attributes.map((attr) => (
+                  <div key={attr.id}>
+                    <label htmlFor={`attr_${attr.id}`} className="block text-xs text-slate-muted">{attr.name}</label>
+                    <input
+                      id={`attr_${attr.id}`}
+                      type="text"
+                      value={attributeValues[attr.id] ?? ''}
+                      onChange={(e) => setAttributeValues((prev) => ({ ...prev, [attr.id]: e.target.value }))}
+                      className="mt-1 w-full rounded-md border border-[#E5E9EF] bg-white px-3 py-2 text-sm text-navy outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 

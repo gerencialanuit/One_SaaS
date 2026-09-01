@@ -1,12 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { toggleProductActive } from '@/actions/products'
+import { toggleProductActive, bulkUpdateProducts } from '@/actions/products'
 import { InventoryQuantityCell } from './InventoryQuantityCell'
 import { PurchaseOrderDetailModal } from './PurchaseOrderDetailModal'
 import { useLocale } from '@/lib/i18n/LocaleProvider'
+import { buildCategoryTree, flattenCategoryTree } from '../utils/category-tree'
 import type { TranslationKey } from '@/lib/i18n/translations'
-import type { ProductWithAvailability, ProductOpenPoSummary } from '../types'
+import type { ProductWithAvailability, ProductOpenPoSummary, SupplierOption } from '../types'
+import type { Category, Brand } from '@/types/database'
 
 const CONDITION_CLASSNAMES: Record<string, string> = {
   nuevo: 'bg-[#038A06]/10 text-[#038A06]',
@@ -33,13 +35,42 @@ const SUPPLY_MODEL_KEYS: Record<string, TranslationKey> = {
 interface ProductsTableProps {
   products: ProductWithAvailability[]
   canManage: boolean
+  categories: Category[]
+  brands: Brand[]
+  suppliers: SupplierOption[]
   onEdit: (product: ProductWithAvailability) => void
   openPurchaseOrders: Record<string, ProductOpenPoSummary>
 }
 
-export function ProductsTable({ products, canManage, onEdit, openPurchaseOrders }: ProductsTableProps) {
+export function ProductsTable({ products, canManage, categories, brands, suppliers, onEdit, openPurchaseOrders }: ProductsTableProps) {
   const [detailProduct, setDetailProduct] = useState<ProductWithAvailability | null>(null)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [bulkCategoryId, setBulkCategoryId] = useState('')
+  const [bulkBrandId, setBulkBrandId] = useState('')
+  const [bulkSupplierId, setBulkSupplierId] = useState('')
+  const [bulkLoading, setBulkLoading] = useState(false)
   const { t } = useLocale()
+
+  const flattenedCategories = flattenCategoryTree(buildCategoryTree(categories))
+  const allSelected = products.length > 0 && selectedIds.length === products.length
+
+  function toggleAll() {
+    setSelectedIds(allSelected ? [] : products.map((p) => p.id))
+  }
+
+  function toggleOne(id: string) {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  async function runBulkUpdate(changes: Parameters<typeof bulkUpdateProducts>[1]) {
+    setBulkLoading(true)
+    await bulkUpdateProducts(selectedIds, changes)
+    setBulkLoading(false)
+    setSelectedIds([])
+    setBulkCategoryId('')
+    setBulkBrandId('')
+    setBulkSupplierId('')
+  }
 
   if (products.length === 0) {
     return (
@@ -51,9 +82,95 @@ export function ProductsTable({ products, canManage, onEdit, openPurchaseOrders 
 
   return (
     <div className="overflow-x-auto rounded-lg border border-[#E5E9EF] bg-white shadow-sm">
+      {canManage && selectedIds.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3 border-b border-[#E5E9EF] bg-tint-blue/40 px-4 py-3">
+          <span className="text-sm font-medium text-navy">
+            {t('products.bulk.selected', { n: selectedIds.length })}
+          </span>
+
+          <select
+            value={bulkCategoryId}
+            disabled={bulkLoading}
+            onChange={(e) => {
+              const value = e.target.value
+              setBulkCategoryId(value)
+              if (value) runBulkUpdate({ category_id: value })
+            }}
+            className="rounded-md border border-[#E5E9EF] bg-white px-2 py-1.5 text-sm text-navy outline-none focus:border-brand-blue"
+          >
+            <option value="">{t('products.bulk.changeCategory')}</option>
+            {flattenedCategories.map(({ category: c, depth }) => (
+              <option key={c.id} value={c.id}>{'—'.repeat(depth)} {c.name}</option>
+            ))}
+          </select>
+
+          <select
+            value={bulkBrandId}
+            disabled={bulkLoading}
+            onChange={(e) => {
+              const value = e.target.value
+              setBulkBrandId(value)
+              if (value) runBulkUpdate({ brand_id: value })
+            }}
+            className="rounded-md border border-[#E5E9EF] bg-white px-2 py-1.5 text-sm text-navy outline-none focus:border-brand-blue"
+          >
+            <option value="">{t('products.bulk.changeBrand')}</option>
+            {brands.map((b) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+
+          <select
+            value={bulkSupplierId}
+            disabled={bulkLoading}
+            onChange={(e) => {
+              const value = e.target.value
+              setBulkSupplierId(value)
+              runBulkUpdate({ supplier_id: value || null })
+            }}
+            className="rounded-md border border-[#E5E9EF] bg-white px-2 py-1.5 text-sm text-navy outline-none focus:border-brand-blue"
+          >
+            <option value="">{t('products.bulk.changeSupplier')}</option>
+            {suppliers.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+
+          <button
+            type="button"
+            disabled={bulkLoading}
+            onClick={() => runBulkUpdate({ is_active: true })}
+            className="rounded-md border border-[#E5E9EF] px-3 py-1.5 text-sm font-medium text-slate hover:border-navy hover:text-navy disabled:opacity-50"
+          >
+            {t('products.table.activate')}
+          </button>
+          <button
+            type="button"
+            disabled={bulkLoading}
+            onClick={() => runBulkUpdate({ is_active: false })}
+            className="rounded-md border border-[#E5E9EF] px-3 py-1.5 text-sm font-medium text-slate hover:border-navy hover:text-navy disabled:opacity-50"
+          >
+            {t('products.table.deactivate')}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSelectedIds([])}
+            className="ml-auto text-sm font-medium text-slate hover:text-navy"
+          >
+            {t('products.bulk.clearSelection')}
+          </button>
+        </div>
+      )}
+
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-[#E5E9EF] text-left text-slate">
+            {canManage && (
+              <th className="w-10 px-4 py-3">
+                <input type="checkbox" checked={allSelected} onChange={toggleAll} className="h-4 w-4 rounded border-[#E5E9EF]" />
+              </th>
+            )}
             <th className="px-4 py-3 font-medium">{t('products.table.product')}</th>
             <th className="px-4 py-3 font-medium">{t('products.table.brand')}</th>
             <th className="px-4 py-3 font-medium">{t('products.table.category')}</th>
@@ -78,6 +195,16 @@ export function ProductsTable({ products, canManage, onEdit, openPurchaseOrders 
 
             return (
               <tr key={product.id} className="border-b border-[#E5E9EF] hover:bg-tint-blue/50">
+                {canManage && (
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(product.id)}
+                      onChange={() => toggleOne(product.id)}
+                      className="h-4 w-4 rounded border-[#E5E9EF]"
+                    />
+                  </td>
+                )}
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-[#E5E9EF] bg-tint-blue">
@@ -91,11 +218,21 @@ export function ProductsTable({ products, canManage, onEdit, openPurchaseOrders 
                     <div>
                       <div className="font-medium text-navy">{product.name}</div>
                       {product.sku && <div className="text-xs text-slate-muted">{product.sku}</div>}
+                      {product.reference_url && (
+                        <a
+                          href={product.reference_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-medium text-brand-blue hover:text-brand-blue-hover hover:underline"
+                        >
+                          {t('products.table.viewReference')}
+                        </a>
+                      )}
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-slate">{product.brand || '—'}</td>
-                <td className="px-4 py-3 text-slate">{product.category}</td>
+                <td className="px-4 py-3 text-slate">{product.brand?.name ?? '—'}</td>
+                <td className="px-4 py-3 text-slate">{product.category?.name ?? '—'}</td>
                 <td className="px-4 py-3 text-navy">
                   ${product.unit_price.toLocaleString('es-CO')}
                 </td>

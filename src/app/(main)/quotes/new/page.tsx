@@ -21,7 +21,7 @@ export default async function NewQuotePage() {
     supabase.from('clients').select('id, name').order('name'),
     supabase
       .from('products')
-      .select('id, name, sku, category, brand, condition, supply_model, image_url, unit_price')
+      .select('id, name, sku, category:categories(name), brand:brands(name), condition, supply_model, image_url, unit_price')
       .eq('is_active', true)
       .neq('condition', 'averiado')
       .order('name'),
@@ -46,6 +46,8 @@ export default async function NewQuotePage() {
 
   const productOptions = (products ?? []).map((p) => ({
     ...p,
+    category: (p.category as unknown as { name: string } | null)?.name ?? '',
+    brand: (p.brand as unknown as { name: string } | null)?.name ?? null,
     available_with_quotes: availabilityMap.get(p.id) ?? 0,
     is_favorite: favoriteIds.has(p.id),
   }))

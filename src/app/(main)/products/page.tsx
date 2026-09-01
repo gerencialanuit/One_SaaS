@@ -18,20 +18,42 @@ export default async function ProductsPage() {
   const supabase = await createClient()
   const profile = await getCurrentProfile()
 
-  const [{ data: products }, { data: availability }, { data: suppliers }, { data: poItemsRaw }] = await Promise.all([
-    supabase.from('products').select('*').order('name'),
+  const [
+    { data: products },
+    { data: availability },
+    { data: suppliers },
+    { data: poItemsRaw },
+    { data: categories },
+    { data: brands },
+    { data: attributes },
+    { data: attributeValues },
+  ] = await Promise.all([
+    supabase.from('products').select('*, category:categories(*), brand:brands(*)').order('name'),
     supabase.from('inventory_availability').select('*'),
     supabase.from('suppliers').select('id, name').order('name'),
     supabase
       .from('purchase_order_items')
       .select('product_id, quantity, purchase_order:purchase_orders(id, expected_arrival_date, status, supplier:suppliers(name))'),
+    supabase.from('categories').select('*').order('name'),
+    supabase.from('brands').select('*').order('name'),
+    supabase.from('product_attributes').select('*').order('name'),
+    supabase.from('product_attribute_values').select('product_id, attribute_id, value'),
   ])
 
   const availabilityMap = new Map((availability ?? []).map((a) => [a.product_id, a]))
+  const attributeNameById = new Map((attributes ?? []).map((a) => [a.id, a.name]))
+
+  const attributeValuesByProduct = new Map<string, { attribute_id: string; name: string; value: string }[]>()
+  for (const v of attributeValues ?? []) {
+    const list = attributeValuesByProduct.get(v.product_id) ?? []
+    list.push({ attribute_id: v.attribute_id, name: attributeNameById.get(v.attribute_id) ?? '', value: v.value })
+    attributeValuesByProduct.set(v.product_id, list)
+  }
 
   const productsWithAvailability: ProductWithAvailability[] = (products ?? []).map((product) => ({
     ...product,
     availability: availabilityMap.get(product.id) ?? null,
+    attribute_values: attributeValuesByProduct.get(product.id) ?? [],
   }))
 
   const openPurchaseOrders: Record<string, ProductOpenPoSummary> = {}
@@ -57,6 +79,9 @@ export default async function ProductsPage() {
     <ProductsPageClient
       products={productsWithAvailability}
       suppliers={suppliers ?? []}
+      categories={categories ?? []}
+      brands={brands ?? []}
+      attributes={attributes ?? []}
       canManage={hasRole(profile, 'inventarios')}
       openPurchaseOrders={openPurchaseOrders}
     />

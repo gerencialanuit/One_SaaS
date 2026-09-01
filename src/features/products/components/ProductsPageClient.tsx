@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ProductsTable } from './ProductsTable'
 import { ProductFormModal } from './ProductFormModal'
 import { CategoriesModal } from './CategoriesModal'
@@ -11,6 +11,13 @@ import { toCsv } from '../utils/csv'
 import { useLocale } from '@/lib/i18n/LocaleProvider'
 import type { ProductWithAvailability, SupplierOption, ProductOpenPoSummary } from '../types'
 import type { Category, Brand, ProductAttribute } from '@/types/database'
+import type { TranslationKey } from '@/lib/i18n/translations'
+
+const STATUS_FILTER_KEYS: Record<'all' | 'active' | 'inactive', TranslationKey> = {
+  all: 'products.filters.status.all',
+  active: 'products.filters.status.active',
+  inactive: 'products.filters.status.inactive',
+}
 
 const CSV_HEADERS = [
   'sku',
@@ -63,12 +70,39 @@ export function ProductsPageClient({
   const [showBrands, setShowBrands] = useState(false)
   const [showAttributes, setShowAttributes] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [search, setSearch] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('Todas')
+  const [brandFilter, setBrandFilter] = useState('')
+  const [supplierFilter, setSupplierFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const { t } = useLocale()
 
-  function handleExport() {
-    const categoryById = new Map(categories.map((c) => [c.id, c]))
+  const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories])
+  const rootCategories = useMemo(() => categories.filter((c) => !c.parent_id), [categories])
 
-    const rows = products.map((p) => {
+  function rootCategoryIdOf(product: ProductWithAvailability): string | null {
+    const category = product.category
+    if (!category) return null
+    return category.parent_id ?? category.id
+  }
+
+  const filteredProducts = useMemo(() => {
+    return products.filter((p) => {
+      const matchesSearch =
+        search.trim() === '' ||
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        (p.sku ?? '').toLowerCase().includes(search.toLowerCase())
+      const matchesCategory = categoryFilter === 'Todas' || rootCategoryIdOf(p) === categoryFilter
+      const matchesBrand = !brandFilter || p.brand_id === brandFilter
+      const matchesSupplier = !supplierFilter || p.supplier_id === supplierFilter
+      const matchesStatus =
+        statusFilter === 'all' || (statusFilter === 'active' ? p.is_active : !p.is_active)
+      return matchesSearch && matchesCategory && matchesBrand && matchesSupplier && matchesStatus
+    })
+  }, [products, search, categoryFilter, brandFilter, supplierFilter, statusFilter])
+
+  function handleExport() {
+    const rows = filteredProducts.map((p) => {
       const category = p.category
       const rootCategory = category?.parent_id ? categoryById.get(category.parent_id) ?? null : category
       const subcategoryName = category?.parent_id ? category.name : ''
@@ -151,14 +185,96 @@ export function ProductsPageClient({
       </div>
 
       <div className="mt-6">
+        <input
+          type="text"
+          placeholder={t('products.filters.searchPlaceholder')}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full rounded-md border border-[#E5E9EF] bg-white px-4 py-2.5 text-navy placeholder-slate-muted outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
+        />
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setCategoryFilter('Todas')}
+            className={
+              categoryFilter === 'Todas'
+                ? 'rounded-full bg-brand-blue-dark px-4 py-1.5 text-sm font-medium text-white'
+                : 'rounded-full border border-[#E5E9EF] bg-white px-4 py-1.5 text-sm font-medium text-slate transition-colors hover:bg-tint-blue hover:text-navy'
+            }
+          >
+            {t('quoteBuilder.categoryAll')}
+          </button>
+          {rootCategories.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setCategoryFilter(c.id)}
+              className={
+                categoryFilter === c.id
+                  ? 'rounded-full bg-brand-blue-dark px-4 py-1.5 text-sm font-medium text-white'
+                  : 'rounded-full border border-[#E5E9EF] bg-white px-4 py-1.5 text-sm font-medium text-slate transition-colors hover:bg-tint-blue hover:text-navy'
+              }
+            >
+              {c.name}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <select
+            value={brandFilter}
+            onChange={(e) => setBrandFilter(e.target.value)}
+            className="rounded-md border border-[#E5E9EF] bg-white px-3 py-1.5 text-sm text-navy outline-none focus:border-brand-blue"
+          >
+            <option value="">{t('products.filters.allBrands')}</option>
+            {brands.map((b) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+
+          <select
+            value={supplierFilter}
+            onChange={(e) => setSupplierFilter(e.target.value)}
+            className="rounded-md border border-[#E5E9EF] bg-white px-3 py-1.5 text-sm text-navy outline-none focus:border-brand-blue"
+          >
+            <option value="">{t('products.filters.allSuppliers')}</option>
+            {suppliers.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+
+          <div className="flex gap-2">
+            {(['all', 'active', 'inactive'] as const).map((status) => (
+              <button
+                key={status}
+                type="button"
+                onClick={() => setStatusFilter(status)}
+                className={
+                  statusFilter === status
+                    ? 'rounded-full bg-navy px-3 py-1 text-xs font-medium text-white'
+                    : 'rounded-full border border-[#E5E9EF] bg-white px-3 py-1 text-xs font-medium text-slate transition-colors hover:bg-tint-blue hover:text-navy'
+                }
+              >
+                {t(STATUS_FILTER_KEYS[status])}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4">
         <ProductsTable
-          products={products}
+          products={filteredProducts}
           canManage={canManage}
           categories={categories}
           brands={brands}
           suppliers={suppliers}
           onEdit={(product) => setModalProduct(product)}
           openPurchaseOrders={openPurchaseOrders}
+          hasActiveFilters={
+            search.trim() !== '' || categoryFilter !== 'Todas' || !!brandFilter || !!supplierFilter || statusFilter !== 'all'
+          }
         />
       </div>
 

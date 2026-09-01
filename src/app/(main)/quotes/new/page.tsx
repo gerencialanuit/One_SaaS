@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentProfile } from '@/lib/supabase/profile'
 import { QuoteBuilderForm } from '@/features/quotes/components/QuoteBuilderForm'
@@ -21,7 +22,7 @@ export default async function NewQuotePage() {
     supabase.from('clients').select('id, name').order('name'),
     supabase
       .from('products')
-      .select('id, name, sku, category:categories(name, parent:parent_id(name)), brand:brands(name), condition, supply_model, image_url, unit_price')
+      .select('id, name, description, sku, category:categories(name, parent:parent_id(name)), brand:brands(name), condition, supply_model, image_url, unit_price')
       .eq('is_active', true)
       .neq('condition', 'averiado')
       .order('name'),
@@ -75,7 +76,17 @@ export default async function NewQuotePage() {
 
   return (
     <div className="p-8">
-      <h1 className="font-heading text-3xl font-bold text-navy">{t('quoteNew.title')}</h1>
+      <Link
+        href="/quotes"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-slate transition-colors hover:text-navy"
+      >
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-4 w-4">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12.5 15L7.5 10L12.5 5" />
+        </svg>
+        {t('quoteDetail.backToList')}
+      </Link>
+
+      <h1 className="mt-3 font-heading text-3xl font-bold text-navy">{t('quoteNew.title')}</h1>
       <p className="mt-1 text-slate">{t('quoteNew.subtitle')}</p>
 
       <div className="mt-6">

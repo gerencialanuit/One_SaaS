@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { VersionHistoryList } from './VersionHistoryList'
 import { QuoteEditModal } from './QuoteEditModal'
 import { ApprovalPanel } from './ApprovalPanel'
@@ -41,7 +42,17 @@ export function QuoteDetailClient({
 
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between">
+      <Link
+        href="/quotes"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-slate transition-colors hover:text-navy"
+      >
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-4 w-4">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12.5 15L7.5 10L12.5 5" />
+        </svg>
+        {t('quoteDetail.backToList')}
+      </Link>
+
+      <div className="mt-3 flex items-center justify-between">
         <div>
           <h1 className="font-heading text-3xl font-bold text-navy">{quote.client?.name ?? t('quoteDetail.fallbackTitle')}</h1>
           <p className="mt-1 text-slate">{quote.project_type}</p>

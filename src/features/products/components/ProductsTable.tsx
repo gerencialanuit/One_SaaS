@@ -40,9 +40,10 @@ interface ProductsTableProps {
   suppliers: SupplierOption[]
   onEdit: (product: ProductWithAvailability) => void
   openPurchaseOrders: Record<string, ProductOpenPoSummary>
+  hasActiveFilters?: boolean
 }
 
-export function ProductsTable({ products, canManage, categories, brands, suppliers, onEdit, openPurchaseOrders }: ProductsTableProps) {
+export function ProductsTable({ products, canManage, categories, brands, suppliers, onEdit, openPurchaseOrders, hasActiveFilters }: ProductsTableProps) {
   const [detailProduct, setDetailProduct] = useState<ProductWithAvailability | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [bulkCategoryId, setBulkCategoryId] = useState('')
@@ -86,7 +87,7 @@ export function ProductsTable({ products, canManage, categories, brands, supplie
   if (products.length === 0) {
     return (
       <div className="rounded-lg border border-[#E5E9EF] bg-white p-8 text-center text-slate">
-        {t('products.table.empty')}
+        {hasActiveFilters ? t('products.filters.noResults') : t('products.table.empty')}
       </div>
     )
   }

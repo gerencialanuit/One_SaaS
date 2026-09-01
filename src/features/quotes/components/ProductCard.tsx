@@ -1,8 +1,12 @@
+import { useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { getAvailabilityLabel, type AvailabilityTone } from '../utils/availability-label'
 import { useLocale } from '@/lib/i18n/LocaleProvider'
+import { ProductHoverCardContent } from './ProductHoverCardContent'
 import type { QuoteProductOption } from '../types'
 
 const currency = (value: number) => `$${value.toLocaleString('es-CO')}`
+const HOVER_CARD_WIDTH = 260
 
 interface ProductCardProps {
   product: QuoteProductOption
@@ -46,9 +50,30 @@ function AvailabilityBadge({ product }: { product: QuoteProductOption }) {
 
 export function ProductCard({ product, quantityInCart, onAdd, isFavorite, onToggleFavorite }: ProductCardProps) {
   const { t } = useLocale()
+  const [hoverPos, setHoverPos] = useState<{ top: number; left: number } | null>(null)
+  const imageRef = useRef<HTMLDivElement>(null)
+
+  function showHover() {
+    const rect = imageRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const overflowsRight = rect.right + 8 + HOVER_CARD_WIDTH > window.innerWidth
+    const left = overflowsRight ? rect.left - HOVER_CARD_WIDTH - 8 : rect.right + 8
+    const top = Math.min(rect.top, window.innerHeight - 300)
+    setHoverPos({ top: Math.max(top, 8), left: Math.max(left, 8) })
+  }
+
+  function hideHover() {
+    setHoverPos(null)
+  }
+
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-lg border border-[#E5E9EF] bg-white shadow-sm">
-      <div className="relative flex aspect-square items-center justify-center bg-tint-blue">
+      <div
+        ref={imageRef}
+        onMouseEnter={showHover}
+        onMouseLeave={hideHover}
+        className="relative flex aspect-square items-center justify-center bg-tint-blue"
+      >
         {product.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" />
@@ -76,6 +101,18 @@ export function ProductCard({ product, quantityInCart, onAdd, isFavorite, onTogg
             <path strokeLinecap="round" strokeLinejoin="round" d="M10 2.5l2.35 4.76 5.25.76-3.8 3.7.9 5.23L10 14.5l-4.7 2.45.9-5.23-3.8-3.7 5.25-.76L10 2.5z" />
           </svg>
         </button>
+
+        {hoverPos &&
+          typeof document !== 'undefined' &&
+          createPortal(
+            <div
+              style={{ position: 'fixed', top: hoverPos.top, left: hoverPos.left, width: HOVER_CARD_WIDTH, zIndex: 100 }}
+              className="pointer-events-none rounded-lg border border-[#E5E9EF] bg-white p-3 shadow-md"
+            >
+              <ProductHoverCardContent product={product} />
+            </div>,
+            document.body
+          )}
       </div>
 
       <div className="flex flex-1 flex-col p-4">

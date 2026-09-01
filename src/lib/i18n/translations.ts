@@ -123,6 +123,7 @@ const dict = {
 
   // Quote detail
   'quoteDetail.fallbackTitle': { es: 'Cotización', en: 'Quote' },
+  'quoteDetail.backToList': { es: 'Volver a cotizaciones', en: 'Back to quotes' },
   'quoteDetail.responsible': { es: 'Comercial responsable:', en: 'Salesperson:' },
   'quoteDetail.downloadPdf': { es: 'Descargar PDF', en: 'Download PDF' },
   'quoteDetail.edit': { es: 'Editar cotización', en: 'Edit quote' },
@@ -156,6 +157,13 @@ const dict = {
   'products.table.nextArrival': { es: 'Próxima llegada', en: 'Next arrival' },
   'products.table.actions': { es: 'Acciones', en: 'Actions' },
   'products.table.empty': { es: 'No hay productos todavía.', en: 'No products yet.' },
+  'products.filters.searchPlaceholder': { es: 'Buscar por nombre o SKU...', en: 'Search by name or SKU...' },
+  'products.filters.allBrands': { es: 'Todas las marcas', en: 'All brands' },
+  'products.filters.allSuppliers': { es: 'Todos los proveedores', en: 'All suppliers' },
+  'products.filters.status.all': { es: 'Todos', en: 'All' },
+  'products.filters.status.active': { es: 'Activos', en: 'Active' },
+  'products.filters.status.inactive': { es: 'Inactivos', en: 'Inactive' },
+  'products.filters.noResults': { es: 'Ningún producto coincide con la búsqueda o los filtros.', en: 'No products match the search or filters.' },
   'products.table.noPhoto': { es: 'Sin foto', en: 'No photo' },
   'products.table.lowStock': { es: 'Stock bajo', en: 'Low stock' },
   'products.table.edit': { es: 'Editar', en: 'Edit' },

@@ -12,6 +12,7 @@ import type {
 export interface QuoteProductOption {
   id: string
   name: string
+  description: string | null
   sku: string | null
   category: string
   brand: string | null

@@ -15,7 +15,9 @@ import type { Category, Brand, ProductAttribute } from '@/types/database'
 const CSV_HEADERS = [
   'sku',
   'name',
+  'description',
   'category',
+  'subcategory',
   'brand',
   'condition',
   'supply_model',
@@ -64,20 +66,30 @@ export function ProductsPageClient({
   const { t } = useLocale()
 
   function handleExport() {
-    const rows = products.map((p) => [
-      p.sku ?? '',
-      p.name,
-      p.category?.name ?? '',
-      p.brand?.name ?? '',
-      p.condition,
-      p.supply_model,
-      p.currency,
-      p.unit_price,
-      p.unit_cost ?? '',
-      p.low_stock_threshold,
-      p.is_active ? 'true' : 'false',
-      p.reference_url ?? '',
-    ])
+    const categoryById = new Map(categories.map((c) => [c.id, c]))
+
+    const rows = products.map((p) => {
+      const category = p.category
+      const rootCategory = category?.parent_id ? categoryById.get(category.parent_id) ?? null : category
+      const subcategoryName = category?.parent_id ? category.name : ''
+
+      return [
+        p.sku ?? '',
+        p.name,
+        p.description ?? '',
+        rootCategory?.name ?? '',
+        subcategoryName,
+        p.brand?.name ?? '',
+        p.condition,
+        p.supply_model,
+        p.currency,
+        p.unit_price,
+        p.unit_cost ?? '',
+        p.low_stock_threshold,
+        p.is_active ? 'true' : 'false',
+        p.reference_url ?? '',
+      ]
+    })
     downloadCsv('productos.csv', toCsv(CSV_HEADERS, rows))
   }
 

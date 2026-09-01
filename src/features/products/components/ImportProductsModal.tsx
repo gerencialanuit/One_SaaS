@@ -12,6 +12,7 @@ interface ImportProductsModalProps {
 
 export function ImportProductsModal({ onClose }: ImportProductsModalProps) {
   const [file, setFile] = useState<File | null>(null)
+  const [images, setImages] = useState<File[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<ImportProductsResult | null>(null)
@@ -27,7 +28,14 @@ export function ImportProductsModal({ onClose }: ImportProductsModalProps) {
 
     const text = await file.text()
     const rows = parseCsvRecords(text) as unknown as ImportProductRow[]
-    const response = await importProducts(rows)
+
+    const formData = new FormData()
+    formData.set('rows', JSON.stringify(rows))
+    for (const image of images) {
+      formData.append('images', image)
+    }
+
+    const response = await importProducts(formData)
 
     if ('error' in response) {
       setError(response.error)
@@ -52,6 +60,22 @@ export function ImportProductsModal({ onClose }: ImportProductsModalProps) {
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             className="mt-1 block w-full text-sm text-slate file:mr-3 file:rounded-md file:border-0 file:bg-tint-blue file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-blue hover:file:bg-brand-blue/10"
           />
+        </div>
+
+        <div className="mt-4">
+          <label htmlFor="product_images" className="block text-sm font-medium text-navy">{t('products.import.selectPhotos')}</label>
+          <input
+            id="product_images"
+            type="file"
+            multiple
+            accept="image/png,image/jpeg,image/webp"
+            onChange={(e) => setImages(Array.from(e.target.files ?? []))}
+            className="mt-1 block w-full text-sm text-slate file:mr-3 file:rounded-md file:border-0 file:bg-tint-blue file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-blue hover:file:bg-brand-blue/10"
+          />
+          <p className="mt-1 text-xs text-slate-muted">{t('products.import.photosInstructions')}</p>
+          {images.length > 0 && (
+            <p className="mt-1 text-xs text-slate-muted">{t('products.import.photosSelected', { n: images.length })}</p>
+          )}
         </div>
 
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}

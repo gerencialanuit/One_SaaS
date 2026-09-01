@@ -26,11 +26,11 @@ function AvailabilityBadge({ product }: { product: QuoteProductOption }) {
 
   if (product.available_with_quotes <= 0) {
     return (
-      <div className="flex flex-col items-end gap-1">
-        <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
+      <div className="flex flex-wrap items-center gap-1">
+        <span className="inline-flex items-center whitespace-nowrap rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
           {t('quoteBuilder.outOfStock')}
         </span>
-        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${TONE_CLASSES[tone]}`}>
+        <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${TONE_CLASSES[tone]}`}>
           {label}
         </span>
       </div>
@@ -38,7 +38,7 @@ function AvailabilityBadge({ product }: { product: QuoteProductOption }) {
   }
 
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${TONE_CLASSES[tone]}`}>
+    <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${TONE_CLASSES[tone]}`}>
       {label}
     </span>
   )
@@ -47,7 +47,7 @@ function AvailabilityBadge({ product }: { product: QuoteProductOption }) {
 export function ProductCard({ product, quantityInCart, onAdd, isFavorite, onToggleFavorite }: ProductCardProps) {
   const { t } = useLocale()
   return (
-    <div className="overflow-hidden rounded-lg border border-[#E5E9EF] bg-white shadow-sm">
+    <div className="flex h-full flex-col overflow-hidden rounded-lg border border-[#E5E9EF] bg-white shadow-sm">
       <div className="relative flex aspect-square items-center justify-center bg-tint-blue">
         {product.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -78,15 +78,19 @@ export function ProductCard({ product, quantityInCart, onAdd, isFavorite, onTogg
         </button>
       </div>
 
-      <div className="p-4">
-        <div className="font-medium text-navy">{product.name}</div>
-        {(product.brand || product.sku) && (
-          <div className="text-xs text-slate-muted">{[product.brand, product.sku].filter(Boolean).join(' · ')}</div>
-        )}
-        <div className="mt-2 flex items-start justify-between">
-          <span className="font-heading font-semibold text-navy">{currency(product.unit_price)}</span>
-          <AvailabilityBadge product={product} />
+      <div className="flex flex-1 flex-col p-4">
+        <div>
+          <div className="font-medium text-navy">{product.name}</div>
+          {(product.brand || product.sku) && (
+            <div className="text-xs text-slate-muted">{[product.brand, product.sku].filter(Boolean).join(' · ')}</div>
+          )}
+          <div className="mt-2 font-heading font-semibold text-navy">{currency(product.unit_price)}</div>
+          <div className="mt-1">
+            <AvailabilityBadge product={product} />
+          </div>
         </div>
+
+        <div className="flex-1" />
 
         <button
           type="button"

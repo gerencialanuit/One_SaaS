@@ -171,10 +171,16 @@ const dict = {
   'products.importCsv': { es: 'Importar CSV', en: 'Import CSV' },
   'products.import.title': { es: 'Importar productos desde CSV', en: 'Import products from CSV' },
   'products.import.instructions': {
-    es: 'El archivo debe tener columnas: sku, name, category, brand, condition, supply_model, currency, unit_price, unit_cost, low_stock_threshold, is_active, reference_url. Si el SKU ya existe, el producto se actualiza; si no, se crea.',
-    en: 'The file must have columns: sku, name, category, brand, condition, supply_model, currency, unit_price, unit_cost, low_stock_threshold, is_active, reference_url. If the SKU already exists the product is updated, otherwise it is created.',
+    es: 'El archivo debe tener columnas: sku, name, description, category, subcategory, brand, condition, supply_model, currency, unit_price, unit_cost, low_stock_threshold, is_active, reference_url. Si el SKU ya existe, el producto se actualiza; si no, se crea.',
+    en: 'The file must have columns: sku, name, description, category, subcategory, brand, condition, supply_model, currency, unit_price, unit_cost, low_stock_threshold, is_active, reference_url. If the SKU already exists the product is updated, otherwise it is created.',
   },
   'products.import.selectFile': { es: 'Selecciona un archivo CSV', en: 'Select a CSV file' },
+  'products.import.selectPhotos': { es: 'Fotos de productos (opcional)', en: 'Product photos (optional)' },
+  'products.import.photosInstructions': {
+    es: 'Nombra cada foto igual al SKU del producto (ej. CAM-DOM-01.jpg) para que se asignen automáticamente.',
+    en: 'Name each photo the same as the product SKU (e.g. CAM-DOM-01.jpg) so they are matched automatically.',
+  },
+  'products.import.photosSelected': { es: '{n} foto(s) seleccionada(s)', en: '{n} photo(s) selected' },
   'products.import.processing': { es: 'Importando...', en: 'Importing...' },
   'products.import.submit': { es: 'Importar', en: 'Import' },
   'products.import.resultSummary': {

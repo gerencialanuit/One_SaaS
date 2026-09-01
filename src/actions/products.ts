@@ -12,6 +12,7 @@ const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp']
 const productSchema = z.object({
   sku: z.string().trim().optional(),
   name: z.string().trim().min(1, 'El nombre es requerido'),
+  description: z.string().trim().optional(),
   category_id: z.string().trim().min(1, 'La categoría es requerida'),
   brand_id: z.string().trim().optional(),
   supplier_id: z.string().trim().optional(),
@@ -29,6 +30,7 @@ function parseProductForm(formData: FormData) {
   return productSchema.safeParse({
     sku: formData.get('sku') || undefined,
     name: formData.get('name'),
+    description: formData.get('description') || undefined,
     category_id: formData.get('category_id'),
     brand_id: formData.get('brand_id') || undefined,
     supplier_id: formData.get('supplier_id') || undefined,
@@ -44,15 +46,10 @@ function parseProductForm(formData: FormData) {
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 
-async function uploadProductImage(
+async function uploadImageFile(
   supabase: SupabaseServerClient,
-  formData: FormData
+  file: File
 ): Promise<{ url: string | null; error: string | null }> {
-  const file = formData.get('image')
-  if (!(file instanceof File) || file.size === 0) {
-    return { url: null, error: null }
-  }
-
   if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
     return { url: null, error: 'La imagen debe ser PNG, JPG o WEBP' }
   }
@@ -73,6 +70,17 @@ async function uploadProductImage(
 
   const { data } = supabase.storage.from('product-images').getPublicUrl(path)
   return { url: data.publicUrl, error: null }
+}
+
+async function uploadProductImage(
+  supabase: SupabaseServerClient,
+  formData: FormData
+): Promise<{ url: string | null; error: string | null }> {
+  const file = formData.get('image')
+  if (!(file instanceof File) || file.size === 0) {
+    return { url: null, error: null }
+  }
+  return uploadImageFile(supabase, file)
 }
 
 export async function createProduct(formData: FormData) {
@@ -98,6 +106,7 @@ export async function createProduct(formData: FormData) {
     .insert({
       sku: parsed.data.sku || null,
       name: parsed.data.name,
+      description: parsed.data.description || null,
       category_id: parsed.data.category_id,
       brand_id: parsed.data.brand_id || null,
       supplier_id: parsed.data.supplier_id || null,
@@ -157,6 +166,7 @@ export async function updateProduct(productId: string, formData: FormData) {
     .update({
       sku: parsed.data.sku || null,
       name: parsed.data.name,
+      description: parsed.data.description || null,
       category_id: parsed.data.category_id,
       brand_id: parsed.data.brand_id || null,
       supplier_id: parsed.data.supplier_id || null,
@@ -241,7 +251,9 @@ export async function bulkUpdateProducts(productIds: string[], changes: BulkProd
 export interface ImportProductRow {
   sku: string
   name: string
+  description: string
   category: string
+  subcategory: string
   brand: string
   condition: string
   supply_model: string
@@ -260,14 +272,32 @@ export interface ImportProductsResult {
   errors: string[]
 }
 
-export async function importProducts(rows: ImportProductRow[]): Promise<{ error: string } | ({ success: true } & ImportProductsResult)> {
+function baseFilename(name: string): string {
+  return name.replace(/\.[^./\\]+$/, '').trim().toLowerCase()
+}
+
+export async function importProducts(formData: FormData): Promise<{ error: string } | ({ success: true } & ImportProductsResult)> {
   const profile = await getCurrentProfile()
   if (!hasRole(profile, 'inventarios')) {
     return { error: 'No tienes permiso para importar productos' }
   }
+
+  let rows: ImportProductRow[]
+  try {
+    rows = JSON.parse((formData.get('rows') as string) ?? '[]')
+  } catch {
+    return { error: 'El archivo de filas no es válido' }
+  }
   if (rows.length === 0) {
     return { error: 'El archivo no tiene filas para importar' }
   }
+
+  const imagesBySku = new Map(
+    formData
+      .getAll('images')
+      .filter((entry): entry is File => entry instanceof File)
+      .map((file) => [baseFilename(file.name), file] as const)
+  )
 
   const supabase = await createClient()
 
@@ -307,6 +337,41 @@ export async function importProducts(rows: ImportProductRow[]): Promise<{ error:
     }
   }
 
+  const subcategoryPairs = new Map<string, { rootId: string; name: string }>()
+  for (const row of rows) {
+    const rootId = categoryMap.get(row.category?.trim().toLowerCase() ?? '')
+    const subName = row.subcategory?.trim()
+    if (rootId && subName) {
+      subcategoryPairs.set(`${rootId}::${subName.toLowerCase()}`, { rootId, name: subName })
+    }
+  }
+
+  const subcategoryMap = new Map<string, string>()
+  if (subcategoryPairs.size > 0) {
+    const rootIds = [...new Set([...subcategoryPairs.values()].map((p) => p.rootId))]
+    const { data: existingSubcategories } = await supabase
+      .from('categories')
+      .select('id, name, parent_id')
+      .in('parent_id', rootIds)
+    for (const c of existingSubcategories ?? []) {
+      subcategoryMap.set(`${c.parent_id}::${c.name.toLowerCase()}`, c.id)
+    }
+
+    const missingSubcategories = [...subcategoryPairs.entries()].filter(([key]) => !subcategoryMap.has(key))
+    if (missingSubcategories.length > 0) {
+      const { data: createdSubcategories, error: subcategoryError } = await supabase
+        .from('categories')
+        .insert(missingSubcategories.map(([, p]) => ({ name: p.name, parent_id: p.rootId })))
+        .select('id, name, parent_id')
+      if (subcategoryError) {
+        return { error: `No se pudieron crear las subcategorías nuevas: ${subcategoryError.message}` }
+      }
+      for (const c of createdSubcategories ?? []) {
+        subcategoryMap.set(`${c.parent_id}::${c.name.toLowerCase()}`, c.id)
+      }
+    }
+  }
+
   const skus = rows.map((r) => r.sku?.trim()).filter((v): v is string => !!v)
   const { data: existingProducts } = skus.length
     ? await supabase.from('products').select('id, sku').in('sku', skus)
@@ -317,13 +382,18 @@ export async function importProducts(rows: ImportProductRow[]): Promise<{ error:
 
   for (const row of rows) {
     const rowLabel = row.name?.trim() || row.sku?.trim() || 'fila sin nombre'
-    const categoryId = categoryMap.get(row.category?.trim().toLowerCase() ?? '')
+    const rootCategoryId = categoryMap.get(row.category?.trim().toLowerCase() ?? '')
 
-    if (!categoryId) {
+    if (!rootCategoryId) {
       result.failed++
       result.errors.push(`${rowLabel}: falta la categoría`)
       continue
     }
+
+    const subcategoryName = row.subcategory?.trim()
+    const categoryId = subcategoryName
+      ? (subcategoryMap.get(`${rootCategoryId}::${subcategoryName.toLowerCase()}`) ?? rootCategoryId)
+      : rootCategoryId
 
     const unitPrice = Number(row.unit_price)
     if (!row.name?.trim() || !Number.isFinite(unitPrice) || unitPrice <= 0) {
@@ -343,9 +413,21 @@ export async function importProducts(rows: ImportProductRow[]): Promise<{ error:
     const lowStockThreshold = row.low_stock_threshold?.trim() ? Number(row.low_stock_threshold) : 5
     const isActive = row.is_active?.trim() ? ['true', '1', 'si', 'sí', 'activo'].includes(row.is_active.trim().toLowerCase()) : true
 
-    const payload = {
+    let imageUrl: string | undefined
+    const matchedImage = row.sku?.trim() ? imagesBySku.get(baseFilename(row.sku.trim())) : undefined
+    if (matchedImage) {
+      const { url, error: uploadError } = await uploadImageFile(supabase, matchedImage)
+      if (uploadError) {
+        result.errors.push(`${rowLabel}: no se pudo subir la foto (${uploadError})`)
+      } else if (url) {
+        imageUrl = url
+      }
+    }
+
+    const payload: Record<string, unknown> = {
       sku: row.sku?.trim() || null,
       name: row.name.trim(),
+      description: row.description?.trim() || null,
       category_id: categoryId,
       brand_id: row.brand?.trim() ? (brandMap.get(row.brand.trim().toLowerCase()) ?? null) : null,
       condition,
@@ -356,6 +438,10 @@ export async function importProducts(rows: ImportProductRow[]): Promise<{ error:
       low_stock_threshold: Number.isFinite(lowStockThreshold) ? lowStockThreshold : 5,
       is_active: isActive,
       reference_url: row.reference_url?.trim() || null,
+    }
+
+    if (imageUrl) {
+      payload.image_url = imageUrl
     }
 
     const existingId = row.sku?.trim() ? productIdBySku.get(row.sku.trim()) : undefined

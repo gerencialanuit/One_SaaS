@@ -39,6 +39,7 @@ export interface Product {
   id: string
   sku: string | null
   name: string
+  description: string | null
   category_id: string
   brand_id: string | null
   supplier_id: string | null

@@ -52,6 +52,17 @@ export function ProductsTable({ products, canManage, categories, brands, supplie
   const { t } = useLocale()
 
   const flattenedCategories = flattenCategoryTree(buildCategoryTree(categories))
+  const categoryById = new Map(categories.map((c) => [c.id, c]))
+
+  function categoryPath(category: Category | null): string {
+    if (!category) return '—'
+    if (category.parent_id) {
+      const parent = categoryById.get(category.parent_id)
+      return parent ? `${parent.name} › ${category.name}` : category.name
+    }
+    return category.name
+  }
+
   const allSelected = products.length > 0 && selectedIds.length === products.length
 
   function toggleAll() {
@@ -232,7 +243,7 @@ export function ProductsTable({ products, canManage, categories, brands, supplie
                   </div>
                 </td>
                 <td className="px-4 py-3 text-slate">{product.brand?.name ?? '—'}</td>
-                <td className="px-4 py-3 text-slate">{product.category?.name ?? '—'}</td>
+                <td className="px-4 py-3 text-slate">{categoryPath(product.category)}</td>
                 <td className="px-4 py-3 text-navy">
                   ${product.unit_price.toLocaleString('es-CO')}
                 </td>

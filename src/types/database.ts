@@ -42,6 +42,7 @@ export interface Product {
   description: string | null
   category_id: string
   brand_id: string | null
+  line: string | null
   supplier_id: string | null
   unit_price: number
   unit_cost: number | null

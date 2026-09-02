@@ -70,7 +70,7 @@ export function ProductFormModal({ product, suppliers, categories, brands, attri
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-lg border border-[#E5E9EF] bg-white p-6 shadow-md" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg border border-[#E5E9EF] bg-white p-6 shadow-md" onClick={(e) => e.stopPropagation()}>
         <h2 className="font-heading text-xl font-semibold text-navy">
           {product ? 'Editar producto' : 'Nuevo producto'}
         </h2>
@@ -186,7 +186,7 @@ export function ProductFormModal({ product, suppliers, categories, brands, attri
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label htmlFor="brand_id" className="block text-sm font-medium text-navy">Marca</label>
               <select
@@ -200,6 +200,17 @@ export function ProductFormModal({ product, suppliers, categories, brands, attri
                   <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label htmlFor="line" className="block text-sm font-medium text-navy">Línea</label>
+              <input
+                id="line"
+                name="line"
+                type="text"
+                placeholder="Ej. Control4, Serie 200..."
+                defaultValue={product?.line ?? ''}
+                className="mt-1 w-full rounded-md border border-[#E5E9EF] bg-white px-3 py-2 text-navy placeholder-slate-muted outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
+              />
             </div>
             <div>
               <label htmlFor="supplier_id" className="block text-sm font-medium text-navy">Proveedor</label>

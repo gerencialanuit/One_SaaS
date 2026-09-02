@@ -15,6 +15,7 @@ const productSchema = z.object({
   description: z.string().trim().optional(),
   category_id: z.string().trim().min(1, 'La categoría es requerida'),
   brand_id: z.string().trim().optional(),
+  line: z.string().trim().optional(),
   supplier_id: z.string().trim().optional(),
   unit_price: z.coerce.number().positive('El precio debe ser mayor a 0'),
   unit_cost: z.coerce.number().nonnegative('El costo no puede ser negativo').optional(),
@@ -33,6 +34,7 @@ function parseProductForm(formData: FormData) {
     description: formData.get('description') || undefined,
     category_id: formData.get('category_id'),
     brand_id: formData.get('brand_id') || undefined,
+    line: formData.get('line') || undefined,
     supplier_id: formData.get('supplier_id') || undefined,
     unit_price: formData.get('unit_price'),
     unit_cost: formData.get('unit_cost') || undefined,
@@ -109,6 +111,7 @@ export async function createProduct(formData: FormData) {
       description: parsed.data.description || null,
       category_id: parsed.data.category_id,
       brand_id: parsed.data.brand_id || null,
+      line: parsed.data.line || null,
       supplier_id: parsed.data.supplier_id || null,
       unit_price: parsed.data.unit_price,
       unit_cost: parsed.data.unit_cost ?? null,
@@ -169,6 +172,7 @@ export async function updateProduct(productId: string, formData: FormData) {
       description: parsed.data.description || null,
       category_id: parsed.data.category_id,
       brand_id: parsed.data.brand_id || null,
+      line: parsed.data.line || null,
       supplier_id: parsed.data.supplier_id || null,
       unit_price: parsed.data.unit_price,
       unit_cost: parsed.data.unit_cost ?? null,
@@ -255,6 +259,7 @@ export interface ImportProductRow {
   category: string
   subcategory: string
   brand: string
+  line: string
   condition: string
   supply_model: string
   currency: string
@@ -430,6 +435,7 @@ export async function importProducts(formData: FormData): Promise<{ error: strin
       description: row.description?.trim() || null,
       category_id: categoryId,
       brand_id: row.brand?.trim() ? (brandMap.get(row.brand.trim().toLowerCase()) ?? null) : null,
+      line: row.line?.trim() || null,
       condition,
       supply_model: supplyModel,
       currency: row.currency?.trim() || 'COP',

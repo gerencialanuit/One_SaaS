@@ -179,8 +179,8 @@ const dict = {
   'products.importCsv': { es: 'Importar CSV', en: 'Import CSV' },
   'products.import.title': { es: 'Importar productos desde CSV', en: 'Import products from CSV' },
   'products.import.instructions': {
-    es: 'El archivo debe tener columnas: sku, name, description, category, subcategory, brand, condition, supply_model, currency, unit_price, unit_cost, low_stock_threshold, is_active, reference_url. Si el SKU ya existe, el producto se actualiza; si no, se crea.',
-    en: 'The file must have columns: sku, name, description, category, subcategory, brand, condition, supply_model, currency, unit_price, unit_cost, low_stock_threshold, is_active, reference_url. If the SKU already exists the product is updated, otherwise it is created.',
+    es: 'El archivo debe tener columnas: sku, name, description, category, subcategory, brand, line, condition, supply_model, currency, unit_price, unit_cost, low_stock_threshold, is_active, reference_url. Si el SKU ya existe, el producto se actualiza; si no, se crea.',
+    en: 'The file must have columns: sku, name, description, category, subcategory, brand, line, condition, supply_model, currency, unit_price, unit_cost, low_stock_threshold, is_active, reference_url. If the SKU already exists the product is updated, otherwise it is created.',
   },
   'products.import.selectFile': { es: 'Selecciona un archivo CSV', en: 'Select a CSV file' },
   'products.import.selectPhotos': { es: 'Fotos de productos (opcional)', en: 'Product photos (optional)' },

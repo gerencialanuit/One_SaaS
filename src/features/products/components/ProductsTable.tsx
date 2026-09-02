@@ -249,7 +249,7 @@ export function ProductsTable({ products, canManage, categories, brands, supplie
                   ${product.unit_price.toLocaleString('es-CO')}
                 </td>
                 <td className="px-4 py-3 text-slate">
-                  {product.unit_cost != null ? `${product.currency} $${product.unit_cost.toLocaleString('es-CO')}` : '—'}
+                  {product.unit_cost != null ? `$${product.unit_cost.toLocaleString('es-CO')}` : '—'}
                 </td>
                 <td className="px-4 py-3">
                   <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${CONDITION_CLASSNAMES[product.condition] ?? ''}`}>

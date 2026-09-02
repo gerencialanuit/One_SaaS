@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentProfile, hasRole } from '@/lib/supabase/profile'
-import { QuotesTable } from '@/features/quotes/components/QuotesTable'
+import { QuotesPageClient } from '@/features/quotes/components/QuotesPageClient'
 import { getTranslator } from '@/lib/i18n/server'
 import type { QuoteWithDetails } from '@/features/quotes/types'
 
@@ -33,7 +33,7 @@ export default async function QuotesPage() {
       </div>
 
       <div className="mt-6">
-        <QuotesTable quotes={(quotes as QuoteWithDetails[] | null) ?? []} />
+        <QuotesPageClient quotes={(quotes as QuoteWithDetails[] | null) ?? []} />
       </div>
     </div>
   )

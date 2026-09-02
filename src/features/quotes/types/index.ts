@@ -15,6 +15,7 @@ export interface QuoteProductOption {
   description: string | null
   sku: string | null
   category: string
+  subcategory: string | null
   brand: string | null
   condition: ProductCondition
   supply_model: ProductSupplyModel

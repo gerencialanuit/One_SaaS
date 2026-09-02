@@ -50,6 +50,7 @@ export default async function NewQuotePage() {
     return {
       ...p,
       category: category?.parent?.name ?? category?.name ?? '',
+      subcategory: category?.parent ? category.name : null,
       brand: (p.brand as unknown as { name: string } | null)?.name ?? null,
       available_with_quotes: availabilityMap.get(p.id) ?? 0,
       is_favorite: favoriteIds.has(p.id),

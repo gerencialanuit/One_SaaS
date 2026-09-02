@@ -1,6 +1,8 @@
+'use client'
+
 import Link from 'next/link'
 import { getQuoteStatusLabel } from '../constants'
-import { getTranslator } from '@/lib/i18n/server'
+import { useLocale } from '@/lib/i18n/LocaleProvider'
 import type { QuoteWithDetails } from '../types'
 
 const currency = (value: number) => `$${value.toLocaleString('es-CO')}`
@@ -9,8 +11,8 @@ interface QuotesTableProps {
   quotes: QuoteWithDetails[]
 }
 
-export async function QuotesTable({ quotes }: QuotesTableProps) {
-  const { t, locale } = await getTranslator()
+export function QuotesTable({ quotes }: QuotesTableProps) {
+  const { t, locale } = useLocale()
 
   if (quotes.length === 0) {
     return (

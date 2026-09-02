@@ -15,6 +15,7 @@ interface ProductCatalogGridProps {
 export function ProductCatalogGrid({ products, cartTotals, onAdd }: ProductCatalogGridProps) {
   const { t } = useLocale()
   const [category, setCategory] = useState('Todas')
+  const [subcategory, setSubcategory] = useState('Todas')
   const [brand, setBrand] = useState('Todas')
   const [search, setSearch] = useState('')
   const [onlyFavorites, setOnlyFavorites] = useState(false)
@@ -22,6 +23,11 @@ export function ProductCatalogGrid({ products, cartTotals, onAdd }: ProductCatal
   const [favoriteIds, setFavoriteIds] = useState(
     () => new Set(products.filter((p) => p.is_favorite).map((p) => p.id))
   )
+
+  function selectCategory(cat: string) {
+    setCategory(cat)
+    setSubcategory('Todas')
+  }
 
   function toggleFavorite(productId: string) {
     const wasFavorite = favoriteIds.has(productId)
@@ -59,9 +65,23 @@ export function ProductCatalogGrid({ products, cartTotals, onAdd }: ProductCatal
     return ['Todas', ...unique]
   }, [products])
 
+  const subcategories = useMemo(() => {
+    if (category === 'Todas') return []
+    const unique = [
+      ...new Set(
+        products
+          .filter((p) => p.category === category)
+          .map((p) => p.subcategory)
+          .filter((s): s is string => !!s)
+      ),
+    ].sort()
+    return unique.length ? ['Todas', ...unique] : []
+  }, [products, category])
+
   const filtered = useMemo(() => {
     return products.filter((p) => {
       const matchesCategory = category === 'Todas' || p.category === category
+      const matchesSubcategory = subcategory === 'Todas' || p.subcategory === subcategory
       const matchesBrand = brand === 'Todas' || p.brand === brand
       const matchesFavorite = !onlyFavorites || favoriteIds.has(p.id)
       const matchesUsed = !onlyUsed || p.condition === 'usado'
@@ -69,9 +89,9 @@ export function ProductCatalogGrid({ products, cartTotals, onAdd }: ProductCatal
         search.trim() === '' ||
         p.name.toLowerCase().includes(search.toLowerCase()) ||
         (p.sku ?? '').toLowerCase().includes(search.toLowerCase())
-      return matchesCategory && matchesBrand && matchesFavorite && matchesUsed && matchesSearch
+      return matchesCategory && matchesSubcategory && matchesBrand && matchesFavorite && matchesUsed && matchesSearch
     })
-  }, [products, category, brand, onlyFavorites, favoriteIds, onlyUsed, search])
+  }, [products, category, subcategory, brand, onlyFavorites, favoriteIds, onlyUsed, search])
 
   return (
     <div>
@@ -88,7 +108,7 @@ export function ProductCatalogGrid({ products, cartTotals, onAdd }: ProductCatal
           <button
             key={cat}
             type="button"
-            onClick={() => setCategory(cat)}
+            onClick={() => selectCategory(cat)}
             className={
               cat === category
                 ? 'rounded-full bg-brand-blue-dark px-4 py-1.5 text-sm font-medium text-white'
@@ -124,6 +144,26 @@ export function ProductCatalogGrid({ products, cartTotals, onAdd }: ProductCatal
           {t('quoteBuilder.used')}
         </button>
       </div>
+
+      {subcategories.length > 0 && (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-slate-muted">{t('quoteBuilder.subcategoryLabel')}</span>
+          {subcategories.map((sub) => (
+            <button
+              key={sub}
+              type="button"
+              onClick={() => setSubcategory(sub)}
+              className={
+                sub === subcategory
+                  ? 'rounded-full bg-brand-blue px-3 py-1 text-xs font-medium text-white'
+                  : 'rounded-full border border-[#E5E9EF] bg-white px-3 py-1 text-xs font-medium text-slate transition-colors hover:bg-tint-blue hover:text-navy'
+              }
+            >
+              {sub === 'Todas' ? t('quoteBuilder.subcategoryAll') : sub}
+            </button>
+          ))}
+        </div>
+      )}
 
       {brands.length > 1 && (
         <div className="mt-2 flex flex-wrap items-center gap-2">

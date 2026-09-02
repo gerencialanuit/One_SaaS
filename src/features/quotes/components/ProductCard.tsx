@@ -117,7 +117,10 @@ export function ProductCard({ product, quantityInCart, onAdd, isFavorite, onTogg
 
       <div className="flex flex-1 flex-col p-4">
         <div>
-          <div className="font-medium text-navy">{product.name}</div>
+          {product.category && (
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-muted">{product.category}</div>
+          )}
+          <div className="text-sm font-medium text-navy">{product.name}</div>
           {(product.brand || product.sku) && (
             <div className="text-xs text-slate-muted">{[product.brand, product.sku].filter(Boolean).join(' · ')}</div>
           )}

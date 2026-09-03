@@ -36,8 +36,8 @@ export function ProductHoverThumb({ product }: { product: QuoteProductOption }) 
         createPortal(
           <div
             ref={popupRef}
-            style={{ position: 'fixed', top: pos.top, left: pos.left, width: CARD_WIDTH, zIndex: 100 }}
-            className="rounded-lg border border-[#E5E9EF] bg-white p-3 shadow-lg"
+            style={{ position: 'fixed', top: pos.top, left: pos.left, width: CARD_WIDTH, maxHeight: 'calc(100vh - 16px)', zIndex: 100 }}
+            className="overflow-y-auto rounded-lg border border-[#E5E9EF] bg-white p-3 shadow-lg"
           >
             <ProductHoverCardContent product={product} />
           </div>,

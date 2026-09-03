@@ -39,7 +39,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
   const [{ data: products }, { data: availability }, { data: poItems }, { data: discountRule }] = await Promise.all([
     supabase
       .from('products')
-      .select('id, name, description, sku, category:categories(name, parent:parent_id(name)), brand:brands(name), condition, supply_model, image_url, unit_price')
+      .select('id, name, description, sku, category:categories(name, parent:parent_id(name)), brand:brands(name), line, condition, supply_model, image_url, reference_url, unit_price')
       .eq('is_active', true)
       .neq('condition', 'averiado')
       .order('name'),

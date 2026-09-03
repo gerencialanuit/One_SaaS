@@ -1,5 +1,6 @@
 import { ProductHoverThumb } from './ProductHoverThumb'
 import { useLocale } from '@/lib/i18n/LocaleProvider'
+import { useEscapeClose } from '@/shared/hooks/useEscapeClose'
 import type { QuoteProductOption } from '../types'
 import type { QuoteEstimate } from '../utils/estimate'
 import type { QuoteTotals, TaxLine } from '../utils/taxes'
@@ -54,6 +55,8 @@ interface CartPanelProps {
   onSubmit: (formData: FormData) => void
   onOpenTemplatePicker: () => void
   onOpenSaveTemplate: () => void
+  isExpanded: boolean
+  onToggleExpand: () => void
 }
 
 export function CartPanel({
@@ -93,10 +96,26 @@ export function CartPanel({
   onSubmit,
   onOpenTemplatePicker,
   onOpenSaveTemplate,
+  isExpanded,
+  onToggleExpand,
 }: CartPanelProps) {
   const { t } = useLocale()
+  useEscapeClose(() => {
+    if (isExpanded) onToggleExpand()
+  })
+
   return (
-    <div className="sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto rounded-lg border border-[#E5E9EF] bg-white p-6 shadow-sm">
+    <>
+      {isExpanded && (
+        <div className="fixed inset-0 z-40 bg-black/30" onClick={onToggleExpand} />
+      )}
+      <div
+        className={
+          isExpanded
+            ? 'fixed inset-y-6 left-1/2 z-50 w-full max-w-2xl -translate-x-1/2 overflow-y-auto rounded-lg border border-[#E5E9EF] bg-white p-6 shadow-2xl'
+            : 'sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto rounded-lg border border-[#E5E9EF] bg-white p-6 shadow-sm'
+        }
+      >
       <div className="flex items-center justify-between gap-2">
         <h2 className="font-heading text-lg font-semibold text-navy">{t('quoteBuilder.cartTitle')}</h2>
         <div className="flex shrink-0 items-center gap-2">
@@ -114,6 +133,22 @@ export function CartPanel({
             className="rounded-md border border-[#E5E9EF] px-2.5 py-1 text-xs font-medium text-slate transition-colors hover:border-navy hover:text-navy disabled:opacity-40"
           >
             {t('quoteBuilder.saveTemplate')}
+          </button>
+          <button
+            type="button"
+            onClick={onToggleExpand}
+            title={isExpanded ? t('quoteBuilder.collapse') : t('quoteBuilder.expand')}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[#E5E9EF] text-slate transition-colors hover:border-navy hover:text-navy"
+          >
+            {isExpanded ? (
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-4 w-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12.5 7.5h3.5v-3.5M7.5 12.5h-3.5v3.5M16 4l-5 5M4 16l5-5" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-4 w-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4h4v4M8 16H4v-4M16 4l-5 5M4 16l5-5" />
+              </svg>
+            )}
           </button>
         </div>
       </div>
@@ -150,7 +185,7 @@ export function CartPanel({
           />
         </div>
 
-        <div className="max-h-[28rem] space-y-3 overflow-y-auto border-t border-[#E5E9EF] pt-3">
+        <div className={`${isExpanded ? 'max-h-[40rem]' : 'max-h-[28rem]'} space-y-3 overflow-y-auto border-t border-[#E5E9EF] pt-3`}>
           {zones.length === 0 ? (
             <p className="text-sm text-slate">{t('quoteBuilder.emptyZones')}</p>
           ) : (
@@ -366,6 +401,7 @@ export function CartPanel({
           {loading ? t('quoteBuilder.submitting') : t('quoteBuilder.submit')}
         </button>
       </form>
-    </div>
+      </div>
+    </>
   )
 }

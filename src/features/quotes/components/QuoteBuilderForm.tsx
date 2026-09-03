@@ -59,6 +59,7 @@ export function QuoteBuilderForm({
   const [loading, setLoading] = useState(false)
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
+  const [isCartExpanded, setIsCartExpanded] = useState(false)
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
 
@@ -324,6 +325,8 @@ export function QuoteBuilderForm({
           onSubmit={handleSubmit}
           onOpenTemplatePicker={() => setShowTemplatePicker(true)}
           onOpenSaveTemplate={() => setShowSaveTemplate(true)}
+          isExpanded={isCartExpanded}
+          onToggleExpand={() => setIsCartExpanded((prev) => !prev)}
         />
       </div>
 

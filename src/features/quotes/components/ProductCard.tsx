@@ -1,12 +1,12 @@
-import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { getAvailabilityLabel, type AvailabilityTone } from '../utils/availability-label'
 import { useLocale } from '@/lib/i18n/LocaleProvider'
 import { ProductHoverCardContent } from './ProductHoverCardContent'
+import { useClickCard } from '../hooks/useClickCard'
 import type { QuoteProductOption } from '../types'
 
 const currency = (value: number) => `$${value.toLocaleString('es-CO')}`
-const HOVER_CARD_WIDTH = 260
+const INFO_CARD_WIDTH = 300
 
 interface ProductCardProps {
   product: QuoteProductOption
@@ -50,29 +50,19 @@ function AvailabilityBadge({ product }: { product: QuoteProductOption }) {
 
 export function ProductCard({ product, quantityInCart, onAdd, isFavorite, onToggleFavorite }: ProductCardProps) {
   const { t } = useLocale()
-  const [hoverPos, setHoverPos] = useState<{ top: number; left: number } | null>(null)
-  const imageRef = useRef<HTMLDivElement>(null)
+  const { pos: infoPos, toggle, triggerRef, popupRef } = useClickCard(INFO_CARD_WIDTH)
 
-  function showHover() {
-    const rect = imageRef.current?.getBoundingClientRect()
-    if (!rect) return
-    const overflowsRight = rect.right + 8 + HOVER_CARD_WIDTH > window.innerWidth
-    const left = overflowsRight ? rect.left - HOVER_CARD_WIDTH - 8 : rect.right + 8
-    const top = Math.min(rect.top, window.innerHeight - 300)
-    setHoverPos({ top: Math.max(top, 8), left: Math.max(left, 8) })
-  }
-
-  function hideHover() {
-    setHoverPos(null)
+  function handlePhotoClick(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect()
+    toggle(rect)
   }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-lg border border-[#E5E9EF] bg-white shadow-sm">
+    <div className="relative flex h-full flex-col overflow-hidden rounded-lg border border-[#E5E9EF] bg-white shadow-sm">
       <div
-        ref={imageRef}
-        onMouseEnter={showHover}
-        onMouseLeave={hideHover}
-        className="relative flex aspect-square items-center justify-center bg-tint-blue"
+        ref={triggerRef as React.RefObject<HTMLDivElement>}
+        onClick={handlePhotoClick}
+        className="group relative flex aspect-square cursor-pointer items-center justify-center bg-tint-blue"
       >
         {product.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -82,6 +72,15 @@ export function ProductCard({ product, quantityInCart, onAdd, isFavorite, onTogg
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M4 8h16M4 4h16v16H4V4z" />
           </svg>
         )}
+
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-navy/0 opacity-0 transition-all group-hover:bg-navy/10 group-hover:opacity-100">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-sm">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-4 w-4 text-navy">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 6H6a2 2 0 00-2 2v6a2 2 0 002 2h6a2 2 0 002-2v-2M9 11l7-7M12 4h4v4" />
+            </svg>
+          </span>
+        </div>
+
         <button
           type="button"
           onClick={(e) => {
@@ -102,12 +101,13 @@ export function ProductCard({ product, quantityInCart, onAdd, isFavorite, onTogg
           </svg>
         </button>
 
-        {hoverPos &&
+        {infoPos &&
           typeof document !== 'undefined' &&
           createPortal(
             <div
-              style={{ position: 'fixed', top: hoverPos.top, left: hoverPos.left, width: HOVER_CARD_WIDTH, zIndex: 100 }}
-              className="pointer-events-none rounded-lg border border-[#E5E9EF] bg-white p-3 shadow-md"
+              ref={popupRef}
+              style={{ position: 'fixed', top: infoPos.top, left: infoPos.left, width: INFO_CARD_WIDTH, zIndex: 100 }}
+              className="rounded-lg border border-[#E5E9EF] bg-white p-3 shadow-lg"
             >
               <ProductHoverCardContent product={product} />
             </div>,

@@ -83,6 +83,8 @@ const dict = {
   'quoteBuilder.subcategoryAll': { es: 'Todas', en: 'All' },
   'quoteBuilder.brandLabel': { es: 'Marca:', en: 'Brand:' },
   'quoteBuilder.brandAll': { es: 'Todas', en: 'All' },
+  'quoteBuilder.expand': { es: 'Expandir cotización', en: 'Expand quote' },
+  'quoteBuilder.collapse': { es: 'Contraer cotización', en: 'Collapse quote' },
   'quoteBuilder.favorites': { es: 'Favoritos', en: 'Favorites' },
   'quoteBuilder.used': { es: 'Usados', en: 'Used' },
   'quoteBuilder.noProducts': { es: 'No hay productos que coincidan.', en: 'No matching products.' },

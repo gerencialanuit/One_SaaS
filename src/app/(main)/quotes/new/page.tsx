@@ -22,7 +22,7 @@ export default async function NewQuotePage() {
     supabase.from('clients').select('id, name').order('name'),
     supabase
       .from('products')
-      .select('id, name, description, sku, category:categories(name, parent:parent_id(name)), brand:brands(name), condition, supply_model, image_url, unit_price')
+      .select('id, name, description, sku, category:categories(name, parent:parent_id(name)), brand:brands(name), line, condition, supply_model, image_url, reference_url, unit_price')
       .eq('is_active', true)
       .neq('condition', 'averiado')
       .order('name'),

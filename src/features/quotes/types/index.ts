@@ -17,9 +17,11 @@ export interface QuoteProductOption {
   category: string
   subcategory: string | null
   brand: string | null
+  line: string | null
   condition: ProductCondition
   supply_model: ProductSupplyModel
   image_url: string | null
+  reference_url: string | null
   unit_price: number
   available_with_quotes: number
   is_favorite?: boolean

@@ -1,35 +1,24 @@
 'use client'
 
-import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ProductHoverCardContent } from './ProductHoverCardContent'
+import { useClickCard } from '../hooks/useClickCard'
 import type { QuoteProductOption } from '../types'
 
-const CARD_WIDTH = 260
+const CARD_WIDTH = 300
 
 export function ProductHoverThumb({ product }: { product: QuoteProductOption }) {
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
-  const ref = useRef<HTMLDivElement>(null)
+  const { pos, toggle, triggerRef, popupRef } = useClickCard(CARD_WIDTH)
 
-  function show() {
-    const rect = ref.current?.getBoundingClientRect()
-    if (!rect) return
-    const overflowsRight = rect.right + 8 + CARD_WIDTH > window.innerWidth
-    const left = overflowsRight ? rect.left - CARD_WIDTH - 8 : rect.right + 8
-    const top = Math.min(rect.top, window.innerHeight - 300)
-    setPos({ top: Math.max(top, 8), left: Math.max(left, 8) })
-  }
-
-  function hide() {
-    setPos(null)
+  function handleClick(e: React.MouseEvent<HTMLDivElement>) {
+    toggle(e.currentTarget.getBoundingClientRect())
   }
 
   return (
     <div
-      ref={ref}
-      onMouseEnter={show}
-      onMouseLeave={hide}
-      className="relative h-9 w-9 shrink-0 overflow-hidden rounded-md border border-[#E5E9EF] bg-tint-blue"
+      ref={triggerRef as React.RefObject<HTMLDivElement>}
+      onClick={handleClick}
+      className="relative h-9 w-9 shrink-0 cursor-pointer overflow-hidden rounded-md border border-[#E5E9EF] bg-tint-blue"
     >
       {product.image_url ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -46,8 +35,9 @@ export function ProductHoverThumb({ product }: { product: QuoteProductOption }) 
         typeof document !== 'undefined' &&
         createPortal(
           <div
+            ref={popupRef}
             style={{ position: 'fixed', top: pos.top, left: pos.left, width: CARD_WIDTH, zIndex: 100 }}
-            className="pointer-events-none rounded-lg border border-[#E5E9EF] bg-white p-3 shadow-md"
+            className="rounded-lg border border-[#E5E9EF] bg-white p-3 shadow-lg"
           >
             <ProductHoverCardContent product={product} />
           </div>,

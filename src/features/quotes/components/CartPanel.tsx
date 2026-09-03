@@ -96,7 +96,7 @@ export function CartPanel({
 }: CartPanelProps) {
   const { t } = useLocale()
   return (
-    <div className="sticky top-8 rounded-lg border border-[#E5E9EF] bg-white p-6 shadow-sm">
+    <div className="sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto rounded-lg border border-[#E5E9EF] bg-white p-6 shadow-sm">
       <div className="flex items-center justify-between gap-2">
         <h2 className="font-heading text-lg font-semibold text-navy">{t('quoteBuilder.cartTitle')}</h2>
         <div className="flex shrink-0 items-center gap-2">

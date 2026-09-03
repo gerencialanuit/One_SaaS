@@ -26,6 +26,7 @@ const CSV_HEADERS = [
   'category',
   'subcategory',
   'brand',
+  'proveedor',
   'line',
   'condition',
   'supply_model',
@@ -79,6 +80,7 @@ export function ProductsPageClient({
   const { t } = useLocale()
 
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories])
+  const supplierById = useMemo(() => new Map(suppliers.map((s) => [s.id, s])), [suppliers])
   const rootCategories = useMemo(() => categories.filter((c) => !c.parent_id), [categories])
 
   function rootCategoryIdOf(product: ProductWithAvailability): string | null {
@@ -115,6 +117,7 @@ export function ProductsPageClient({
         rootCategory?.name ?? '',
         subcategoryName,
         p.brand?.name ?? '',
+        (p.supplier_id ? supplierById.get(p.supplier_id)?.name : '') ?? '',
         p.line ?? '',
         p.condition,
         p.supply_model,

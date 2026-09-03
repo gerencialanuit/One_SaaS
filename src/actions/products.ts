@@ -259,6 +259,7 @@ export interface ImportProductRow {
   category: string
   subcategory: string
   brand: string
+  proveedor: string
   line: string
   condition: string
   supply_model: string
@@ -339,6 +340,24 @@ export async function importProducts(formData: FormData): Promise<{ error: strin
     }
     for (const b of createdBrands ?? []) {
       brandMap.set(b.name.toLowerCase(), b.id)
+    }
+  }
+
+  const supplierNames = [...new Set(rows.map((r) => r.proveedor?.trim()).filter((v): v is string => !!v))]
+  const { data: existingSuppliers } = await supabase.from('suppliers').select('id, name')
+  const supplierMap = new Map((existingSuppliers ?? []).map((s) => [s.name.toLowerCase(), s.id]))
+
+  const missingSupplierNames = supplierNames.filter((name) => !supplierMap.has(name.toLowerCase()))
+  if (missingSupplierNames.length > 0) {
+    const { data: createdSuppliers, error: supplierError } = await supabase
+      .from('suppliers')
+      .insert(missingSupplierNames.map((name) => ({ name })))
+      .select('id, name')
+    if (supplierError) {
+      return { error: `No se pudieron crear los proveedores nuevos: ${supplierError.message}` }
+    }
+    for (const s of createdSuppliers ?? []) {
+      supplierMap.set(s.name.toLowerCase(), s.id)
     }
   }
 
@@ -435,6 +454,7 @@ export async function importProducts(formData: FormData): Promise<{ error: strin
       description: row.description?.trim() || null,
       category_id: categoryId,
       brand_id: row.brand?.trim() ? (brandMap.get(row.brand.trim().toLowerCase()) ?? null) : null,
+      supplier_id: row.proveedor?.trim() ? (supplierMap.get(row.proveedor.trim().toLowerCase()) ?? null) : null,
       line: row.line?.trim() || null,
       condition,
       supply_model: supplyModel,

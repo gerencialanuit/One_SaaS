@@ -287,7 +287,7 @@ export function QuoteBuilderForm({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 pb-24 lg:grid-cols-3 lg:pb-0">
+    <div className="grid grid-cols-1 gap-6 pb-36 lg:grid-cols-3 lg:pb-0">
       <div className="lg:col-span-2">
         <ProductCatalogGrid products={productsWithArrival} cartTotals={cartTotals} onAdd={addToActiveZone} />
       </div>
@@ -339,7 +339,7 @@ export function QuoteBuilderForm({
         <button
           type="button"
           onClick={() => setIsCartExpanded(true)}
-          className="fixed inset-x-4 bottom-4 z-30 flex items-center justify-between rounded-full bg-brand-blue px-5 py-3 text-white shadow-lg lg:hidden"
+          className="fixed inset-x-4 bottom-20 z-30 flex items-center justify-between rounded-full bg-brand-blue px-5 py-3 text-white shadow-lg lg:hidden"
         >
           <span className="flex items-center gap-2 text-sm font-semibold">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5 shrink-0">

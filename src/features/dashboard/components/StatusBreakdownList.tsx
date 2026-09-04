@@ -22,16 +22,16 @@ export async function StatusBreakdownList({ breakdown }: { breakdown: StatusBrea
         {breakdown.map((entry) => {
           const status = getQuoteStatusLabel(locale, entry.status)
           return (
-            <li key={entry.status} className="flex items-center gap-3 py-2.5 text-sm">
-              <div className="w-36 shrink-0">
+            <li key={entry.status} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-sm sm:flex-nowrap">
+              <div className="w-full sm:w-36 sm:shrink-0">
                 <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${status.className}`}>
                   {status.label}
                 </span>
               </div>
-              <div className="flex-1 text-center text-slate">
+              <div className="flex-1 text-slate sm:text-center">
                 {entry.count} {entry.count === 1 ? t('dashboard.statusBreakdown.quote') : t('dashboard.statusBreakdown.quotes')}
               </div>
-              <div className="w-32 shrink-0 text-right font-medium text-navy">{currency(entry.total)}</div>
+              <div className="text-right font-medium text-navy sm:w-32 sm:shrink-0">{currency(entry.total)}</div>
             </li>
           )
         })}

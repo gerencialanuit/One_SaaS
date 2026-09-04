@@ -76,7 +76,7 @@ export default async function NewQuotePage() {
     .filter((x): x is IncomingOrder => x !== null)
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <Link
         href="/quotes"
         className="inline-flex items-center gap-1.5 text-sm font-medium text-slate transition-colors hover:text-navy"

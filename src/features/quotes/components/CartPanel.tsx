@@ -113,10 +113,10 @@ export function CartPanel({
         className={
           isExpanded
             ? 'fixed inset-y-6 left-1/2 z-50 w-full max-w-2xl -translate-x-1/2 overflow-y-auto rounded-lg border border-[#E5E9EF] bg-white p-6 shadow-2xl'
-            : 'sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto rounded-lg border border-[#E5E9EF] bg-white p-6 shadow-sm'
+            : 'hidden rounded-lg border border-[#E5E9EF] bg-white p-6 shadow-sm lg:sticky lg:top-8 lg:block lg:max-h-[calc(100vh-4rem)] lg:overflow-y-auto'
         }
       >
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-heading text-lg font-semibold text-navy">{t('quoteBuilder.cartTitle')}</h2>
         <div className="flex shrink-0 items-center gap-2">
           <button

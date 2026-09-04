@@ -27,13 +27,13 @@ export default async function DashboardPage() {
   const showPurchasingSection = hasRole(profile, 'compras')
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <h1 className="font-heading text-3xl font-bold text-navy">{t('dashboard.title')}</h1>
       <p className="mt-1 text-slate">{t('dashboard.subtitle')}</p>
 
       {showSalesSection && (
         <>
-          <div className="mt-6 grid grid-cols-4 gap-6">
+          <div className="mt-6 grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
             <KpiCard
               label={t('dashboard.kpi.pipeline')}
               value={currency(kpis.pipelineValue)}
@@ -44,8 +44,8 @@ export default async function DashboardPage() {
             <KpiCard label={t('dashboard.kpi.pendingApprovals')} value={String(data.pendingApprovals.length)} />
           </div>
 
-          <div className="mt-6 grid grid-cols-3 gap-6">
-            <div className="col-span-2 space-y-6">
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="space-y-6 lg:col-span-2">
               {showApprovals && <PendingApprovalsList quotes={data.pendingApprovals} />}
               <StatusBreakdownList breakdown={kpis.statusBreakdown} />
               <TopClientsList clients={data.topClients} />
@@ -58,7 +58,7 @@ export default async function DashboardPage() {
       )}
 
       {(showInventorySection || showPurchasingSection) && (
-        <div className="mt-6 grid grid-cols-2 gap-6">
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
           {showInventorySection && <LowStockList products={data.lowStockProducts} />}
           {showPurchasingSection && <UpcomingArrivalsList arrivals={data.upcomingArrivals} />}
         </div>

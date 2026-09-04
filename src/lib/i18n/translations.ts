@@ -130,6 +130,8 @@ const dict = {
   'quoteBuilder.noPo': { es: 'Sin OC', en: 'No PO' },
   'quoteBuilder.removeFavorite': { es: 'Quitar de favoritos', en: 'Remove from favorites' },
   'quoteBuilder.addFavorite': { es: 'Agregar a favoritos', en: 'Add to favorites' },
+  'quoteBuilder.viewCart': { es: 'Ver carrito', en: 'View cart' },
+  'quoteBuilder.cartItemsHint': { es: 'productos', en: 'items' },
 
   // Quote detail
   'quoteDetail.fallbackTitle': { es: 'Cotización', en: 'Quote' },

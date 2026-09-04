@@ -41,7 +41,7 @@ export function QuoteDetailClient({
   const zoneGroups = groupByZone(quote.currentItems)
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <Link
         href="/quotes"
         className="inline-flex items-center gap-1.5 text-sm font-medium text-slate transition-colors hover:text-navy"
@@ -52,13 +52,13 @@ export function QuoteDetailClient({
         {t('quoteDetail.backToList')}
       </Link>
 
-      <div className="mt-3 flex items-center justify-between">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-heading text-3xl font-bold text-navy">{quote.client?.name ?? t('quoteDetail.fallbackTitle')}</h1>
           <p className="mt-1 text-slate">{quote.project_type}</p>
           <p className="mt-0.5 text-xs text-slate-muted">{t('quoteDetail.responsible')} {quote.commercial?.full_name || quote.commercial?.email || '—'}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${status.className}`}>
             {status.label}
           </span>
@@ -88,8 +88,8 @@ export function QuoteDetailClient({
         </div>
       )}
 
-      <div className="mt-6 grid grid-cols-3 gap-6">
-        <div className="col-span-2 space-y-6">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
           {canApprove && currentVersion && (
             <ApprovalPanel quoteId={quote.id} quoteVersionId={currentVersion.id} discountPercent={currentVersion.discount_percent} />
           )}
@@ -101,26 +101,28 @@ export function QuoteDetailClient({
               return (
                 <div key={group.zoneName} className="mt-4">
                   <h3 className="text-sm font-semibold text-brand-blue">{group.zoneName}</h3>
-                  <table className="mt-2 w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-[#E5E9EF] text-left text-slate">
-                        <th className="py-2 font-medium">{t('quoteDetail.table.product')}</th>
-                        <th className="py-2 font-medium">{t('quoteDetail.table.quantity')}</th>
-                        <th className="py-2 font-medium">{t('quoteDetail.table.unitPrice')}</th>
-                        <th className="py-2 font-medium">{t('quoteDetail.table.subtotal')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {group.items.map((item) => (
-                        <tr key={item.id} className="border-b border-[#E5E9EF]">
-                          <td className="py-2 text-navy">{item.product?.name ?? '—'}</td>
-                          <td className="py-2 text-slate">{item.quantity}</td>
-                          <td className="py-2 text-slate">{currency(item.unit_price)}</td>
-                          <td className="py-2 text-navy">{currency(item.quantity * item.unit_price)}</td>
+                  <div className="overflow-x-auto">
+                    <table className="mt-2 w-full min-w-[480px] text-sm">
+                      <thead>
+                        <tr className="border-b border-[#E5E9EF] text-left text-slate">
+                          <th className="py-2 font-medium">{t('quoteDetail.table.product')}</th>
+                          <th className="py-2 font-medium">{t('quoteDetail.table.quantity')}</th>
+                          <th className="py-2 font-medium">{t('quoteDetail.table.unitPrice')}</th>
+                          <th className="py-2 font-medium">{t('quoteDetail.table.subtotal')}</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {group.items.map((item) => (
+                          <tr key={item.id} className="border-b border-[#E5E9EF]">
+                            <td className="py-2 text-navy">{item.product?.name ?? '—'}</td>
+                            <td className="py-2 text-slate">{item.quantity}</td>
+                            <td className="py-2 text-slate">{currency(item.unit_price)}</td>
+                            <td className="py-2 text-navy">{currency(item.quantity * item.unit_price)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                   <div className="mt-1 text-right text-xs font-medium text-slate">
                     {t('quoteDetail.zoneSubtotal', { zone: group.zoneName })} {currency(zoneTotal)}
                   </div>

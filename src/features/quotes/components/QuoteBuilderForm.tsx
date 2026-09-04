@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createQuote } from '@/actions/quotes'
+import { useLocale } from '@/lib/i18n/LocaleProvider'
 import { computeQuoteEstimate, type IncomingOrder } from '../utils/estimate'
 import { computeQuoteTotals, DEFAULT_LABOR_RATE, DEFAULT_TAX_LINES, type TaxLine } from '../utils/taxes'
 import { ProductCatalogGrid } from './ProductCatalogGrid'
@@ -10,6 +11,8 @@ import { CartPanel, type CartZone } from './CartPanel'
 import { TemplatePickerModal } from './TemplatePickerModal'
 import { SaveTemplateModal } from './SaveTemplateModal'
 import type { QuoteProductOption, QuoteTemplateWithItems } from '../types'
+
+const currency = (value: number) => `$${value.toLocaleString('es-CO')}`
 
 interface ClientOption {
   id: string
@@ -46,6 +49,7 @@ export function QuoteBuilderForm({
   isGerente,
 }: QuoteBuilderFormProps) {
   const router = useRouter()
+  const { t } = useLocale()
   const [clientId, setClientId] = useState('')
   const [projectType, setProjectType] = useState('')
   const [zones, setZones] = useState<Zone[]>([])
@@ -107,6 +111,7 @@ export function QuoteBuilderForm({
   }, [zones])
 
   const hasItems = useMemo(() => Array.from(cartTotals.values()).some((qty) => qty > 0), [cartTotals])
+  const cartItemCount = useMemo(() => Array.from(cartTotals.values()).reduce((sum, qty) => sum + qty, 0), [cartTotals])
 
   const subtotal = useMemo(() => {
     let sum = 0
@@ -282,8 +287,8 @@ export function QuoteBuilderForm({
   }
 
   return (
-    <div className="grid grid-cols-3 gap-6">
-      <div className="col-span-2">
+    <div className="grid grid-cols-1 gap-6 pb-24 lg:grid-cols-3 lg:pb-0">
+      <div className="lg:col-span-2">
         <ProductCatalogGrid products={productsWithArrival} cartTotals={cartTotals} onAdd={addToActiveZone} />
       </div>
 
@@ -329,6 +334,22 @@ export function QuoteBuilderForm({
           onToggleExpand={() => setIsCartExpanded((prev) => !prev)}
         />
       </div>
+
+      {hasItems && !isCartExpanded && (
+        <button
+          type="button"
+          onClick={() => setIsCartExpanded(true)}
+          className="fixed inset-x-4 bottom-4 z-30 flex items-center justify-between rounded-full bg-brand-blue px-5 py-3 text-white shadow-lg lg:hidden"
+        >
+          <span className="flex items-center gap-2 text-sm font-semibold">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5 shrink-0">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17M17 13v4a2 2 0 002 2M9 21a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2z" />
+            </svg>
+            {t('quoteBuilder.viewCart')} · {cartItemCount} {t('quoteBuilder.cartItemsHint')}
+          </span>
+          <span className="font-heading font-semibold">{currency(totals.total)}</span>
+        </button>
+      )}
 
       {showTemplatePicker && (
         <TemplatePickerModal

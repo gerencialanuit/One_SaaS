@@ -16,8 +16,8 @@ export function ClientsPageClient({ clients, canCreate }: ClientsPageClientProps
   const { t } = useLocale()
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-heading text-3xl font-bold text-navy">{t('clients.title')}</h1>
           <p className="mt-1 text-slate">{t('clients.subtitle')}</p>

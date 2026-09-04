@@ -49,7 +49,7 @@ export async function InventoryValueChart({ data }: { data: InventoryValueByCate
       {slices.length === 0 ? (
         <p className="mt-4 text-sm text-slate">{t('dashboard.inventoryValue.empty')}</p>
       ) : (
-        <div className="mt-4 flex items-center gap-8">
+        <div className="mt-4 flex flex-col items-center gap-6 sm:flex-row sm:gap-8">
           <div className="relative h-40 w-40 shrink-0">
             <svg viewBox="0 0 36 36" className="h-40 w-40 -rotate-90">
               {slices.map((slice) => (

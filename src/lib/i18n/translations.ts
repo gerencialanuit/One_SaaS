@@ -12,6 +12,10 @@ const dict = {
   'sidebar.clients': { es: 'Clientes', en: 'Clients' },
   'sidebar.logout': { es: 'Cerrar sesión', en: 'Log out' },
   'sidebar.language': { es: 'Idioma', en: 'Language' },
+  'sidebar.openMenu': { es: 'Abrir menú', en: 'Open menu' },
+  'sidebar.collapseSidebar': { es: 'Colapsar barra lateral', en: 'Collapse sidebar' },
+  'sidebar.closeMenu': { es: 'Cerrar menú', en: 'Close menu' },
+  'sidebar.toggleSection': { es: 'Mostrar u ocultar sección', en: 'Toggle section' },
 
   // Dashboard
   'dashboard.title': { es: 'Dashboard', en: 'Dashboard' },

@@ -1,6 +1,6 @@
 {
   "name": "One Automatización | Cotizador",
-  "short_name": "One Cotizador",
+  "short_name": "One",
   "description": "Cotizador ágil con visibilidad de inventario para One Automatización",
   "start_url": "/dashboard",
   "scope": "/",

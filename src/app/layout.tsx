@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'One Cotizador',
+    title: 'One',
   },
   icons: {
     icon: [

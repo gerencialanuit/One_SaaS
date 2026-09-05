@@ -45,6 +45,10 @@ interface CartPanelProps {
   laborPercent: number
   onToggleLabor: () => void
   onChangeLaborPercent: (value: number) => void
+  cablesEnabled: boolean
+  cablesPercent: number
+  onToggleCables: () => void
+  onChangeCablesPercent: (value: number) => void
   taxes: TaxLine[]
   totals: QuoteTotals
   onToggleTax: (index: number) => void
@@ -86,6 +90,10 @@ export function CartPanel({
   laborPercent,
   onToggleLabor,
   onChangeLaborPercent,
+  cablesEnabled,
+  cablesPercent,
+  onToggleCables,
+  onChangeCablesPercent,
   taxes,
   totals,
   onToggleTax,
@@ -293,6 +301,28 @@ export function CartPanel({
             <div className="flex items-center gap-2 pt-1 text-sm">
               <input
                 type="checkbox"
+                checked={cablesEnabled}
+                onChange={onToggleCables}
+                className="h-4 w-4 rounded border-[#E5E9EF] text-brand-blue focus:ring-brand-blue/20"
+              />
+              <span className="flex-1 font-medium text-navy">{t('quoteBuilder.applyCables')}</span>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                step="0.1"
+                value={cablesPercent}
+                onChange={(e) => onChangeCablesPercent(Number(e.target.value))}
+                disabled={!cablesEnabled}
+                className="w-16 rounded-md border border-[#E5E9EF] px-2 py-1 text-right text-navy outline-none focus:border-brand-blue disabled:opacity-50"
+              />
+              <span className="text-slate">%</span>
+            </div>
+            <p className="text-xs text-slate-muted">{t('quoteBuilder.cablesHint')}</p>
+
+            <div className="flex items-center gap-2 pt-1 text-sm">
+              <input
+                type="checkbox"
                 checked={laborEnabled}
                 onChange={onToggleLabor}
                 className="h-4 w-4 rounded border-[#E5E9EF] text-brand-blue focus:ring-brand-blue/20"
@@ -356,6 +386,12 @@ export function CartPanel({
               <div className="mt-1 flex justify-between">
                 <span className="text-slate">{t('quoteBuilder.discount')} ({discountPercent}%)</span>
                 <span className="text-navy">−{currency(totals.discountAmount)}</span>
+              </div>
+            )}
+            {cablesEnabled && totals.cablesAmount > 0 && (
+              <div className="mt-1 flex justify-between">
+                <span className="text-slate">{t('quoteBuilder.cables')} ({cablesPercent}%)</span>
+                <span className="text-navy">+{currency(totals.cablesAmount)}</span>
               </div>
             )}
             {laborEnabled && totals.laborAmount > 0 && (

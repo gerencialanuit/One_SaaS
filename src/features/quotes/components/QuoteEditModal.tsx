@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { createQuoteVersion } from '@/actions/quote-versions'
 import { computeQuoteEstimate, type IncomingOrder } from '../utils/estimate'
-import { computeQuoteTotals, DEFAULT_LABOR_RATE, DEFAULT_TAX_LINES, LABOR_LINE_NAME, type TaxLine } from '../utils/taxes'
+import { computeQuoteTotals, DEFAULT_CABLES_RATE, DEFAULT_LABOR_RATE, DEFAULT_TAX_LINES, CABLES_LINE_NAME, LABOR_LINE_NAME, type TaxLine } from '../utils/taxes'
 import { useEscapeClose } from '@/shared/hooks/useEscapeClose'
 import type { QuoteProductOption, QuoteItemWithProduct } from '../types'
 import type { QuoteTax } from '@/types/database'
@@ -43,8 +43,11 @@ export function QuoteEditModal({
   const currentLaborTax = currentTaxes.find((t) => t.name === LABOR_LINE_NAME)
   const [laborEnabled, setLaborEnabled] = useState(currentLaborTax?.enabled ?? false)
   const [laborPercent, setLaborPercent] = useState(currentLaborTax?.rate ?? DEFAULT_LABOR_RATE)
+  const currentCablesTax = currentTaxes.find((t) => t.name === CABLES_LINE_NAME)
+  const [cablesEnabled, setCablesEnabled] = useState(currentCablesTax?.enabled ?? false)
+  const [cablesPercent, setCablesPercent] = useState(currentCablesTax?.rate ?? DEFAULT_CABLES_RATE)
   const [taxes, setTaxes] = useState<TaxLine[]>(() => {
-    const nonLaborTaxes = currentTaxes.filter((t) => t.name !== LABOR_LINE_NAME)
+    const nonLaborTaxes = currentTaxes.filter((t) => t.name !== LABOR_LINE_NAME && t.name !== CABLES_LINE_NAME)
     return nonLaborTaxes.length > 0
       ? nonLaborTaxes.map((t) => ({ name: t.name, rate: t.rate, kind: t.kind, enabled: t.enabled }))
       : DEFAULT_TAX_LINES
@@ -78,9 +81,11 @@ export function QuoteEditModal({
         discountPercent: discountValue,
         laborEnabled,
         laborPercent,
+        cablesEnabled,
+        cablesPercent,
         taxLines: taxes,
       }),
-    [estimate, discountValue, laborEnabled, laborPercent, taxes]
+    [estimate, discountValue, laborEnabled, laborPercent, cablesEnabled, cablesPercent, taxes]
   )
   const total = totals.total
 
@@ -116,6 +121,8 @@ export function QuoteEditModal({
     formData.set('taxes', JSON.stringify(taxes))
     formData.set('labor_enabled', String(laborEnabled))
     formData.set('labor_percent', String(laborPercent))
+    formData.set('cables_enabled', String(cablesEnabled))
+    formData.set('cables_percent', String(cablesPercent))
 
     const result = await createQuoteVersion(quoteId, formData)
 
@@ -199,6 +206,30 @@ export function QuoteEditModal({
             <div className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
+                checked={cablesEnabled}
+                onChange={() => setCablesEnabled((prev) => !prev)}
+                className="h-4 w-4 rounded border-[#E5E9EF] text-brand-blue focus:ring-brand-blue/20"
+              />
+              <span className="flex-1 font-medium text-navy">Aplicar cables y accesorios</span>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                step="0.1"
+                value={cablesPercent}
+                onChange={(e) => setCablesPercent(Number(e.target.value))}
+                disabled={!cablesEnabled}
+                className="w-16 rounded-md border border-[#E5E9EF] px-2 py-1 text-right text-navy outline-none focus:border-brand-blue disabled:opacity-50"
+              />
+              <span className="text-slate">%</span>
+            </div>
+            <p className="mt-1 text-xs text-slate-muted">Se calcula sobre el subtotal con descuento y no paga IVA.</p>
+          </div>
+
+          <div>
+            <div className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
                 checked={laborEnabled}
                 onChange={() => setLaborEnabled((prev) => !prev)}
                 className="h-4 w-4 rounded border-[#E5E9EF] text-brand-blue focus:ring-brand-blue/20"
@@ -259,6 +290,12 @@ export function QuoteEditModal({
                 <span className="text-slate">Descuento</span>
                 <span className="text-navy">{discountValue}%</span>
               </div>
+              {cablesEnabled && totals.cablesAmount > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-slate">Cables y accesorios ({cablesPercent}%)</span>
+                  <span className="text-navy">+{currency(totals.cablesAmount)}</span>
+                </div>
+              )}
               {laborEnabled && totals.laborAmount > 0 && (
                 <div className="flex justify-between">
                   <span className="text-slate">Mano de obra ({laborPercent}%)</span>

@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentProfile } from '@/lib/supabase/profile'
 import { computeQuoteEstimate, type IncomingOrder } from '@/features/quotes/utils/estimate'
-import { computeQuoteTotals, DEFAULT_TAX_LINES, LABOR_LINE_NAME, type TaxLine } from '@/features/quotes/utils/taxes'
+import { computeQuoteTotals, DEFAULT_TAX_LINES, LABOR_LINE_NAME, CABLES_LINE_NAME, type TaxLine } from '@/features/quotes/utils/taxes'
 
 const itemSchema = z.object({
   product_id: z.string().trim().min(1),
@@ -25,6 +25,8 @@ const versionSchema = z.object({
   taxes: z.array(taxLineSchema).optional(),
   labor_enabled: z.string().optional().transform((v) => v === 'true'),
   labor_percent: z.coerce.number().min(0, 'La mano de obra no puede ser negativa').max(100, 'La mano de obra no puede superar 100%').default(0),
+  cables_enabled: z.string().optional().transform((v) => v === 'true'),
+  cables_percent: z.coerce.number().min(0, 'Cables y accesorios no puede ser negativo').max(100, 'Cables y accesorios no puede superar 100%').default(0),
 })
 
 export async function createQuoteVersion(quoteId: string, formData: FormData) {
@@ -48,6 +50,8 @@ export async function createQuoteVersion(quoteId: string, formData: FormData) {
     taxes: rawTaxes,
     labor_enabled: formData.get('labor_enabled') || undefined,
     labor_percent: formData.get('labor_percent') || '0',
+    cables_enabled: formData.get('cables_enabled') || undefined,
+    cables_percent: formData.get('cables_percent') || '0',
   })
 
   if (!parsed.success) {
@@ -118,6 +122,8 @@ export async function createQuoteVersion(quoteId: string, formData: FormData) {
     discountPercent: parsed.data.discount_percent,
     laborEnabled: parsed.data.labor_enabled,
     laborPercent: parsed.data.labor_percent,
+    cablesEnabled: parsed.data.cables_enabled,
+    cablesPercent: parsed.data.cables_percent,
     taxLines,
   })
   const total = totals.total
@@ -163,6 +169,14 @@ export async function createQuoteVersion(quoteId: string, formData: FormData) {
       kind: 'add',
       enabled: parsed.data.labor_enabled,
       amount: totals.laborAmount,
+    },
+    {
+      quote_version_id: version.id,
+      name: CABLES_LINE_NAME,
+      rate: parsed.data.cables_percent,
+      kind: 'add',
+      enabled: parsed.data.cables_enabled,
+      amount: totals.cablesAmount,
     },
     ...totals.taxes.map((tax) => ({
       quote_version_id: version.id,

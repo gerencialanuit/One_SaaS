@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation'
 import { createQuote } from '@/actions/quotes'
 import { useLocale } from '@/lib/i18n/LocaleProvider'
 import { computeQuoteEstimate, type IncomingOrder } from '../utils/estimate'
-import { computeQuoteTotals, DEFAULT_LABOR_RATE, DEFAULT_TAX_LINES, type TaxLine } from '../utils/taxes'
+import { computeQuoteTotals, DEFAULT_CABLES_RATE, DEFAULT_LABOR_RATE, DEFAULT_TAX_LINES, type TaxLine } from '../utils/taxes'
 import { ProductCatalogGrid } from './ProductCatalogGrid'
 import { CartPanel, type CartZone } from './CartPanel'
 import { TemplatePickerModal } from './TemplatePickerModal'
 import { SaveTemplateModal } from './SaveTemplateModal'
+import { ZonePickerModal } from './ZonePickerModal'
 import type { QuoteProductOption, QuoteTemplateWithItems } from '../types'
 
 const currency = (value: number) => `$${value.toLocaleString('es-CO')}`
@@ -57,13 +58,16 @@ export function QuoteBuilderForm({
   const [taxes, setTaxes] = useState<TaxLine[]>(DEFAULT_TAX_LINES)
   const [discountEnabled, setDiscountEnabled] = useState(false)
   const [discountPercent, setDiscountPercent] = useState(0)
-  const [laborEnabled, setLaborEnabled] = useState(false)
+  const [laborEnabled, setLaborEnabled] = useState(true)
   const [laborPercent, setLaborPercent] = useState(DEFAULT_LABOR_RATE)
+  const [cablesEnabled, setCablesEnabled] = useState(true)
+  const [cablesPercent, setCablesPercent] = useState(DEFAULT_CABLES_RATE)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
   const [isCartExpanded, setIsCartExpanded] = useState(false)
+  const [pendingProductId, setPendingProductId] = useState<string | null>(null)
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
 
@@ -141,9 +145,11 @@ export function QuoteBuilderForm({
         discountPercent: effectiveDiscountPercent,
         laborEnabled,
         laborPercent,
+        cablesEnabled,
+        cablesPercent,
         taxLines: taxes,
       }),
-    [subtotal, effectiveDiscountPercent, laborEnabled, laborPercent, taxes]
+    [subtotal, effectiveDiscountPercent, laborEnabled, laborPercent, cablesEnabled, cablesPercent, taxes]
   )
 
   function toggleTax(index: number) {
@@ -198,9 +204,9 @@ export function QuoteBuilderForm({
     })
   }
 
-  function addToActiveZone(productId: string) {
+  function addProductToZone(productId: string, zoneId: string | null) {
     setZones((prev) => {
-      let targetId = activeZoneId
+      let targetId = zoneId
       let next = prev
 
       if (!targetId || !prev.some((z) => z.id === targetId)) {
@@ -217,6 +223,21 @@ export function QuoteBuilderForm({
         return { ...z, items }
       })
     })
+  }
+
+  function requestAddProduct(productId: string) {
+    if (zones.length >= 2) {
+      setPendingProductId(productId)
+      return
+    }
+    addProductToZone(productId, activeZoneId)
+  }
+
+  function pickZoneForPendingProduct(zoneId: string | null) {
+    if (pendingProductId) {
+      addProductToZone(pendingProductId, zoneId)
+    }
+    setPendingProductId(null)
   }
 
   function incrementItem(zoneId: string, productId: string) {
@@ -273,6 +294,8 @@ export function QuoteBuilderForm({
     formData.set('discount_percent', String(effectiveDiscountPercent))
     formData.set('labor_enabled', String(laborEnabled))
     formData.set('labor_percent', String(laborPercent))
+    formData.set('cables_enabled', String(cablesEnabled))
+    formData.set('cables_percent', String(cablesPercent))
 
     const result = await createQuote(formData)
 
@@ -289,7 +312,7 @@ export function QuoteBuilderForm({
   return (
     <div className="grid grid-cols-1 gap-6 pb-36 lg:grid-cols-3 lg:pb-0">
       <div className="lg:col-span-2">
-        <ProductCatalogGrid products={productsWithArrival} cartTotals={cartTotals} onAdd={addToActiveZone} />
+        <ProductCatalogGrid products={productsWithArrival} cartTotals={cartTotals} onAdd={requestAddProduct} />
       </div>
 
       <div>
@@ -320,6 +343,10 @@ export function QuoteBuilderForm({
           laborPercent={laborPercent}
           onToggleLabor={() => setLaborEnabled((prev) => !prev)}
           onChangeLaborPercent={setLaborPercent}
+          cablesEnabled={cablesEnabled}
+          cablesPercent={cablesPercent}
+          onToggleCables={() => setCablesEnabled((prev) => !prev)}
+          onChangeCablesPercent={setCablesPercent}
           taxes={taxes}
           totals={totals}
           onToggleTax={toggleTax}
@@ -371,6 +398,14 @@ export function QuoteBuilderForm({
             setShowSaveTemplate(false)
             router.refresh()
           }}
+        />
+      )}
+
+      {pendingProductId && (
+        <ZonePickerModal
+          zones={zones.map((z) => ({ id: z.id, name: z.name }))}
+          onPick={pickZoneForPendingProduct}
+          onClose={() => setPendingProductId(null)}
         />
       )}
     </div>

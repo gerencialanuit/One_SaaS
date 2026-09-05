@@ -19,6 +19,7 @@ export interface TaxSummary {
 }
 
 export const LABOR_LINE_NAME = 'Mano de obra'
+export const CABLES_LINE_NAME = 'Cables y Accesorios'
 
 /**
  * Impuestos por defecto para una cotizacion nueva en Colombia:
@@ -34,6 +35,7 @@ export const DEFAULT_TAX_LINES: TaxLine[] = [
 ]
 
 export const DEFAULT_LABOR_RATE = 10
+export const DEFAULT_CABLES_RATE = 10
 
 export function computeTaxes(base: number, taxLines: TaxLine[]): TaxSummary {
   const taxes: ComputedTaxLine[] = taxLines.map((tax) => ({
@@ -57,6 +59,8 @@ export interface QuoteTotalsInput {
   discountPercent: number
   laborEnabled: boolean
   laborPercent: number
+  cablesEnabled: boolean
+  cablesPercent: number
   taxLines: TaxLine[]
 }
 
@@ -65,6 +69,7 @@ export interface QuoteTotals {
   discountAmount: number
   discountedSubtotal: number
   laborAmount: number
+  cablesAmount: number
   ivaBase: number
   taxes: ComputedTaxLine[]
   addedAmount: number
@@ -75,17 +80,21 @@ export interface QuoteTotals {
 /**
  * Orden de calculo del carrito (confirmado con el negocio):
  * 1. subtotal - descuento% = subtotal con descuento
- * 2. mano de obra% se calcula SOBRE el subtotal con descuento, y se resta de
- *    esa base — la mano de obra no paga IVA, solo los materiales/productos.
- * 3. IVA (y retencion, informativa) se calculan sobre esa base ya sin mano de obra.
- * 4. Total a facturar = base sin mano de obra + IVA + mano de obra (la mano de
- *    obra SI se sigue cobrando, solo queda fuera de la base gravable de IVA).
+ * 2. mano de obra% y cables y accesorios% se calculan SOBRE el subtotal con
+ *    descuento, y se restan de esa base — ninguno de los dos paga IVA, solo
+ *    los materiales/productos.
+ * 3. IVA (y retencion, informativa) se calculan sobre esa base ya sin mano de
+ *    obra ni cables y accesorios.
+ * 4. Total a facturar = base sin mano de obra/cables + IVA + mano de obra +
+ *    cables y accesorios (ambos SI se siguen cobrando, solo quedan fuera de
+ *    la base gravable de IVA).
  */
 export function computeQuoteTotals(input: QuoteTotalsInput): QuoteTotals {
   const discountedSubtotal = input.subtotal * (1 - input.discountPercent / 100)
   const discountAmount = input.subtotal - discountedSubtotal
   const laborAmount = input.laborEnabled ? Math.round(discountedSubtotal * (input.laborPercent / 100)) : 0
-  const ivaBase = discountedSubtotal - laborAmount
+  const cablesAmount = input.cablesEnabled ? Math.round(discountedSubtotal * (input.cablesPercent / 100)) : 0
+  const ivaBase = discountedSubtotal - laborAmount - cablesAmount
 
   const taxSummary = computeTaxes(ivaBase, input.taxLines)
 
@@ -94,15 +103,16 @@ export function computeQuoteTotals(input: QuoteTotalsInput): QuoteTotals {
     discountAmount,
     discountedSubtotal,
     laborAmount,
+    cablesAmount,
     ivaBase,
     taxes: taxSummary.taxes,
     addedAmount: taxSummary.addedAmount,
     withheldAmount: taxSummary.withheldAmount,
-    total: taxSummary.total + laborAmount,
+    total: taxSummary.total + laborAmount + cablesAmount,
   }
 }
 
-const DISPLAY_ORDER = [LABOR_LINE_NAME, 'IVA']
+const DISPLAY_ORDER = [CABLES_LINE_NAME, LABOR_LINE_NAME, 'IVA']
 
 export function sortTaxesForDisplay<T extends { name: string }>(taxes: T[]): T[] {
   return [...taxes].sort((a, b) => {

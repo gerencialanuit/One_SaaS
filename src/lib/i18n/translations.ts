@@ -20,6 +20,7 @@ const dict = {
   // Dashboard
   'dashboard.title': { es: 'Dashboard', en: 'Dashboard' },
   'dashboard.subtitle': { es: 'Resumen de la operación', en: 'Operations summary' },
+  'dashboard.newQuoteFab': { es: 'Nueva cotización', en: 'New quote' },
   'dashboard.kpi.pipeline': { es: 'Pipeline activo', en: 'Active pipeline' },
   'dashboard.kpi.pipelineHint': { es: 'cotizaciones', en: 'quotes' },
   'dashboard.kpi.conversion': { es: 'Tasa de conversión', en: 'Conversion rate' },

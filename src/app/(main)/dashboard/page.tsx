@@ -9,6 +9,7 @@ import { LowStockList } from '@/features/dashboard/components/LowStockList'
 import { UpcomingArrivalsList } from '@/features/dashboard/components/UpcomingArrivalsList'
 import { InventoryValueChart } from '@/features/dashboard/components/InventoryValueChart'
 import { TopClientsList } from '@/features/dashboard/components/TopClientsList'
+import { NewQuoteFab } from '@/shared/components/NewQuoteFab'
 import { getTranslator } from '@/lib/i18n/server'
 
 const currency = (value: number) => `$${Math.round(value).toLocaleString('es-CO')}`
@@ -69,6 +70,8 @@ export default async function DashboardPage() {
           <InventoryValueChart data={data.inventoryValueByCategory} />
         </div>
       )}
+
+      {showSalesSection && <NewQuoteFab />}
     </div>
   )
 }

@@ -552,13 +552,19 @@ export function QuoteBuilderForm({
     }
 
     const isDesktop = typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 1024px)').matches
-    const wantsPdf = window.confirm(t('quoteBuilder.downloadPdfConfirm'))
+    // Solo en escritorio se pregunta por el PDF (ahi el visor si tiene barra
+    // de herramientas y funciona bien). En movil/PWA no se pregunta nada: se
+    // navega directo al detalle de la cotizacion recien creada, que ya tiene
+    // el boton "Compartir / Guardar" listo para un toque real del usuario —
+    // intentar compartir aqui mismo despues de un confirm() no es confiable,
+    // se pierde el gesto de usuario mientras se genera el PDF.
+    const wantsPdf = isDesktop && window.confirm(t('quoteBuilder.downloadPdfConfirm'))
     // La pestaña se abre AQUI MISMO, en blanco, antes de cualquier await —
     // todavia dentro del gesto de clic original del usuario. Si se abre
     // despues de esperar la respuesta del servidor (como estaba antes), el
     // navegador ya perdio el "user activation" y bloquea window.open() como
     // popup en silencio: no pasa nada, sin error ni aviso visible.
-    const pdfWindow = wantsPdf && isDesktop ? window.open('about:blank', '_blank') : null
+    const pdfWindow = wantsPdf ? window.open('about:blank', '_blank') : null
 
     const result = await createQuote(formData)
 
@@ -577,24 +583,15 @@ export function QuoteBuilderForm({
 
     setLoading(false)
 
-    if (wantsPdf && result.quoteId) {
-      if (pdfWindow) {
-        // Escritorio: formato ya diseñado — visor de PDF en la pestaña que ya
-        // estaba abierta, solo la redirigimos al PDF real.
-        pdfWindow.location.href = `/quotes/${result.quoteId}/pdf`
-        router.push('/quotes')
-        return
-      }
-
-      // Movil/PWA: intentar compartir aqui mismo no es confiable — entre el
-      // confirm(), el fetch del PDF y el resto del flujo se pierde el "gesto
-      // de usuario" que iOS exige para abrir el menu nativo, asi que
-      // navigator.share() simplemente no hace nada visible. En vez de eso
-      // llevamos al detalle de la cotizacion recien creada: ahi el boton
-      // "Compartir / Guardar" dispara con un toque fresco del usuario y si
-      // funciona de forma confiable.
+    if (!isDesktop && result.quoteId) {
       router.push(`/quotes/${result.quoteId}`)
       return
+    }
+
+    if (pdfWindow && result.quoteId) {
+      // Escritorio: formato ya diseñado — visor de PDF en la pestaña que ya
+      // estaba abierta, solo la redirigimos al PDF real.
+      pdfWindow.location.href = `/quotes/${result.quoteId}/pdf`
     }
 
     router.push('/quotes')

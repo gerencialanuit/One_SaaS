@@ -84,6 +84,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
     commercialName: shared.commercial_name || shared.commercial_email || '—',
     commercialCargo: shared.commercial_cargo,
     commercialEmail: shared.commercial_email ?? '—',
+    // El RPC de cotizacion compartida (link publico) todavia no expone
+    // moneda/TRM — esa vista esta deshabilitada en la UI por ahora.
+    currency: 'USD',
+    trmRate: null,
   }
 
   const buffer = await renderToBuffer(<QuotePdfDocument data={pdfData} />)

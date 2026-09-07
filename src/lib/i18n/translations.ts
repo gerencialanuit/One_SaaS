@@ -118,6 +118,9 @@ const dict = {
   'quoteBuilder.laborHint': { es: 'Se calcula sobre el subtotal con descuento y no paga IVA.', en: 'Calculated on the discounted subtotal and does not carry VAT.' },
   'quoteBuilder.applyCables': { es: 'Aplicar cables y accesorios', en: 'Apply cables and accessories' },
   'quoteBuilder.cablesHint': { es: 'Se calcula sobre el subtotal con descuento y no paga IVA.', en: 'Calculated on the discounted subtotal and does not carry VAT.' },
+  'quoteBuilder.quoteInCop': { es: 'Cotizar en pesos colombianos (COP)', en: 'Quote in Colombian pesos (COP)' },
+  'quoteBuilder.trmLabel': { es: 'TRM (COP por USD)', en: 'TRM (COP per USD)' },
+  'quoteBuilder.checkTrmSource': { es: 'Ver tasa hoy en Hometech →', en: 'Check today’s rate on Hometech →' },
   'quoteBuilder.taxes': { es: 'Impuestos', en: 'Taxes' },
   'quoteBuilder.subtotal': { es: 'Subtotal', en: 'Subtotal' },
   'quoteBuilder.discount': { es: 'Descuento', en: 'Discount' },
@@ -185,6 +188,8 @@ const dict = {
   'quoteDetail.zoneSubtotal': { es: 'Subtotal {zone}:', en: 'Subtotal {zone}:' },
   'quoteDetail.total': { es: 'Total', en: 'Total' },
   'quoteDetail.withholdingNote': { es: 'La retención es informativa: el cliente la descuenta al pagar, no cambia el valor facturado.', en: 'Withholding is informational: the client deducts it when paying, it does not change the invoiced amount.' },
+  'quoteDetail.currencyCopNote': { es: 'Cotización en pesos colombianos — TRM utilizada: {rate}', en: 'Quote in Colombian pesos — TRM used: {rate}' },
+  'quoteDetail.closePdf': { es: 'Cerrar', en: 'Close' },
 
   // Products
   'products.title': { es: 'Productos e Inventario', en: 'Products & Inventory' },

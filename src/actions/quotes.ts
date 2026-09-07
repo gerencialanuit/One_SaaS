@@ -7,6 +7,7 @@ import { getCurrentProfile, hasRole } from '@/lib/supabase/profile'
 import { computeQuoteEstimate, type IncomingOrder } from '@/features/quotes/utils/estimate'
 import { computeQuoteTotals, DEFAULT_TAX_LINES, LABOR_LINE_NAME, CABLES_LINE_NAME, type TaxLine } from '@/features/quotes/utils/taxes'
 import { DEFAULT_INTRO_MESSAGE, DEFAULT_PAYMENT_TERMS, DEFAULT_DELIVERY_TIME_TEXT, DEFAULT_VALIDITY_TEXT, DEFAULT_NOTES } from '@/features/quotes/constants'
+import { updateDefaultTrm } from '@/actions/settings'
 
 const itemSchema = z.object({
   product_id: z.string().trim().min(1),
@@ -36,6 +37,8 @@ const quoteSchema = z.object({
   delivery_time_text: z.string().trim().min(1).default(DEFAULT_DELIVERY_TIME_TEXT),
   validity_text: z.string().trim().min(1).default(DEFAULT_VALIDITY_TEXT),
   notes: z.string().trim().default(DEFAULT_NOTES),
+  currency: z.enum(['USD', 'COP']).default('USD'),
+  trm_rate: z.coerce.number().positive('La TRM debe ser mayor a 0').optional(),
 })
 
 export async function createQuote(formData: FormData) {
@@ -68,10 +71,16 @@ export async function createQuote(formData: FormData) {
     delivery_time_text: formData.get('delivery_time_text') || undefined,
     validity_text: formData.get('validity_text') || undefined,
     notes: formData.get('notes') ?? undefined,
+    currency: formData.get('currency') || undefined,
+    trm_rate: formData.get('trm_rate') || undefined,
   })
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message }
+  }
+
+  if (parsed.data.currency === 'COP' && !parsed.data.trm_rate) {
+    return { error: 'Ingresa la TRM para cotizar en pesos colombianos' }
   }
 
   const supabase = await createClient()
@@ -79,7 +88,7 @@ export async function createQuote(formData: FormData) {
 
   const [{ data: availabilityRows }, { data: productsRows }, { data: poItemsRows }, { data: discountRule }] = await Promise.all([
     supabase.from('inventory_availability').select('product_id, available_with_quotes').in('product_id', productIds),
-    supabase.from('products').select('id, unit_price').in('id', productIds),
+    supabase.from('products').select('id, unit_price, currency').in('id', productIds),
     supabase.from('purchase_order_items').select('product_id, quantity, purchase_order_id').in('product_id', productIds),
     supabase.from('discount_rules').select('max_discount_percent').eq('role', profile.role).single(),
   ])
@@ -94,8 +103,22 @@ export async function createQuote(formData: FormData) {
     : { data: [] }
 
   const poMap = new Map((posRows ?? []).map((po) => [po.id, po]))
-  const priceMap = new Map((productsRows ?? []).map((p) => [p.id, p.unit_price]))
+  const productMap = new Map((productsRows ?? []).map((p) => [p.id, p]))
   const availabilityMap = new Map((availabilityRows ?? []).map((a) => [a.product_id, a.available_with_quotes]))
+
+  // Si la cotizacion se hace en pesos, los productos con precio en USD se
+  // convierten con la TRM elegida; los que ya estan en COP se dejan igual.
+  const { currency: quoteCurrency, trm_rate: trmRate } = parsed.data
+  function resolveUnitPrice(productId: string): number {
+    const product = productMap.get(productId)
+    if (!product) return 0
+    if (quoteCurrency === 'COP' && product.currency === 'USD') {
+      return product.unit_price * (trmRate ?? 0)
+    }
+    return product.unit_price
+  }
+
+  const priceMap = new Map(productIds.map((id) => [id, resolveUnitPrice(id)]))
 
   const availability = productIds.map((id) => ({
     productId: id,
@@ -173,12 +196,22 @@ export async function createQuote(formData: FormData) {
       validity_text: parsed.data.validity_text,
       notes: parsed.data.notes,
       created_by: profile.id,
+      currency: parsed.data.currency,
+      trm_rate: parsed.data.currency === 'COP' ? parsed.data.trm_rate : null,
     })
     .select('id')
     .single()
 
   if (versionError || !version) {
     return { error: versionError?.message ?? 'No se pudo crear la versión de la cotización' }
+  }
+
+  if (parsed.data.currency === 'COP' && parsed.data.trm_rate) {
+    // La tasa usada en esta cotizacion queda como el nuevo valor por defecto
+    // para la proxima: es la forma simple de mantenerla "sincronizada" sin
+    // depender de scraping automatico (hometechcol.com esta detras de un
+    // challenge de Cloudflare que bloquea el fetch server-side).
+    await updateDefaultTrm(parsed.data.trm_rate)
   }
 
   const { error: linkError } = await supabase

@@ -7,6 +7,7 @@ import { groupByZone } from '@/features/quotes/utils/group-by-zone'
 import { LABOR_LINE_NAME, CABLES_LINE_NAME, DEFAULT_LABOR_RATE, DEFAULT_CABLES_RATE, type TaxLine } from '@/features/quotes/utils/taxes'
 import { DEFAULT_INTRO_MESSAGE, DEFAULT_PAYMENT_TERMS, DEFAULT_DELIVERY_TIME_TEXT, DEFAULT_VALIDITY_TEXT, DEFAULT_NOTES } from '@/features/quotes/constants'
 import { getTranslator } from '@/lib/i18n/server'
+import { getDefaultTrm } from '@/actions/settings'
 import type { IncomingOrder } from '@/features/quotes/utils/estimate'
 import type { QuoteItemWithProduct } from '@/features/quotes/types'
 import type { QuoteTax } from '@/types/database'
@@ -53,7 +54,7 @@ export default async function EditQuotePage({ params }: { params: Promise<{ id: 
     supabase.from('clients').select('id, name').order('name'),
     supabase
       .from('products')
-      .select('id, name, description, sku, category:categories(name, parent:parent_id(name)), brand:brands(name), line, condition, supply_model, image_url, reference_url, unit_price, unit_cost')
+      .select('id, name, description, sku, category:categories(name, parent:parent_id(name)), brand:brands(name), line, condition, supply_model, image_url, reference_url, unit_price, unit_cost, currency')
       .eq('is_active', true)
       .neq('condition', 'averiado')
       .order('name'),
@@ -133,7 +134,11 @@ export default async function EditQuotePage({ params }: { params: Promise<{ id: 
     deliveryTimeText: currentVersion?.delivery_time_text ?? DEFAULT_DELIVERY_TIME_TEXT,
     validityText: currentVersion?.validity_text ?? DEFAULT_VALIDITY_TEXT,
     notes: currentVersion?.notes ?? DEFAULT_NOTES,
+    currency: (currentVersion?.currency ?? 'USD') as 'USD' | 'COP',
+    trmRate: currentVersion?.trm_rate ?? null,
   }
+
+  const defaultTrmRate = await getDefaultTrm()
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -159,6 +164,7 @@ export default async function EditQuotePage({ params }: { params: Promise<{ id: 
           templates={templates ?? []}
           currentProfileId={profile?.id ?? ''}
           isGerente={profile?.role === 'gerente'}
+          defaultTrmRate={defaultTrmRate}
           editMode={{ quoteId: id, initial }}
         />
       </div>

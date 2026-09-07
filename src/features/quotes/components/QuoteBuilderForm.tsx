@@ -39,6 +39,8 @@ export interface QuoteBuilderEditInitial {
   deliveryTimeText: string
   validityText: string
   notes: string
+  currency: 'USD' | 'COP'
+  trmRate: number | null
 }
 
 export interface QuoteBuilderEditMode {
@@ -54,6 +56,7 @@ interface QuoteBuilderFormProps {
   templates: QuoteTemplateWithItems[]
   currentProfileId: string
   isGerente: boolean
+  defaultTrmRate: number
   editMode?: QuoteBuilderEditMode
 }
 
@@ -94,6 +97,8 @@ interface StoredDraft {
   deliveryTimeText: string
   validityText: string
   notes: string
+  currency: 'USD' | 'COP'
+  trmRate: number
 }
 
 function buildDraft(state: {
@@ -113,6 +118,8 @@ function buildDraft(state: {
   deliveryTimeText: string
   validityText: string
   notes: string
+  currency: 'USD' | 'COP'
+  trmRate: number
 }): StoredDraft {
   return {
     clientId: state.clientId,
@@ -131,6 +138,8 @@ function buildDraft(state: {
     deliveryTimeText: state.deliveryTimeText,
     validityText: state.validityText,
     notes: state.notes,
+    currency: state.currency,
+    trmRate: state.trmRate,
   }
 }
 
@@ -142,6 +151,7 @@ export function QuoteBuilderForm({
   templates,
   currentProfileId,
   isGerente,
+  defaultTrmRate,
   editMode,
 }: QuoteBuilderFormProps) {
   const router = useRouter()
@@ -165,6 +175,8 @@ export function QuoteBuilderForm({
   const [deliveryTimeText, setDeliveryTimeText] = useState(initial?.deliveryTimeText ?? DEFAULT_DELIVERY_TIME_TEXT)
   const [validityText, setValidityText] = useState(initial?.validityText ?? DEFAULT_VALIDITY_TEXT)
   const [notes, setNotes] = useState(initial?.notes ?? DEFAULT_NOTES)
+  const [quoteCurrency, setQuoteCurrency] = useState<'USD' | 'COP'>(initial?.currency ?? 'USD')
+  const [trmRate, setTrmRate] = useState(initial?.trmRate ?? defaultTrmRate)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
@@ -208,6 +220,8 @@ export function QuoteBuilderForm({
         setDeliveryTimeText(draft.deliveryTimeText ?? DEFAULT_DELIVERY_TIME_TEXT)
         setValidityText(draft.validityText ?? DEFAULT_VALIDITY_TEXT)
         setNotes(draft.notes ?? DEFAULT_NOTES)
+        setQuoteCurrency(draft.currency ?? 'USD')
+        setTrmRate(draft.trmRate ?? defaultTrmRate)
       }
     } catch {
       // borrador corrupto o localStorage no disponible: se ignora y se parte de un carrito vacio
@@ -237,12 +251,14 @@ export function QuoteBuilderForm({
         deliveryTimeText,
         validityText,
         notes,
+        currency: quoteCurrency,
+        trmRate,
       })
       localStorage.setItem(draftKey, JSON.stringify(draft))
     } catch {
       // localStorage no disponible (privado/bloqueado): el borrador simplemente no persiste
     }
-  }, [isDraftHydrated, draftKey, clientId, projectType, zones, activeZoneId, taxes, discountEnabled, discountPercent, laborEnabled, laborPercent, cablesEnabled, cablesPercent, introMessage, paymentTerms, deliveryTimeText, validityText, notes])
+  }, [isDraftHydrated, draftKey, clientId, projectType, zones, activeZoneId, taxes, discountEnabled, discountPercent, laborEnabled, laborPercent, cablesEnabled, cablesPercent, introMessage, paymentTerms, deliveryTimeText, validityText, notes, quoteCurrency, trmRate])
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
 
@@ -262,7 +278,22 @@ export function QuoteBuilderForm({
     [products, nextArrivalByProduct]
   )
 
-  const productsById = useMemo(() => new Map(productsWithArrival.map((p) => [p.id, p])), [productsWithArrival])
+  // Si la cotizacion esta en COP, los productos con precio en USD se
+  // convierten con la TRM para el carrito, los totales y el PDF final. Los
+  // productos que ya estan en COP en el catalogo se dejan tal cual. El
+  // catalogo de arriba sigue mostrando el precio nativo de cada producto
+  // (normalmente USD) para no complicar la vista de navegacion.
+  const pricedProducts: QuoteProductOption[] = useMemo(
+    () =>
+      quoteCurrency === 'COP'
+        ? productsWithArrival.map((p) =>
+            p.currency === 'USD' ? { ...p, unit_price: p.unit_price * (trmRate || 0) } : p
+          )
+        : productsWithArrival,
+    [productsWithArrival, quoteCurrency, trmRate]
+  )
+
+  const productsById = useMemo(() => new Map(pricedProducts.map((p) => [p.id, p])), [pricedProducts])
 
   const resolvedZones: CartZone[] = useMemo(
     () =>
@@ -301,8 +332,8 @@ export function QuoteBuilderForm({
   }, [cartTotals, productsById])
 
   const availability = useMemo(
-    () => products.map((p) => ({ productId: p.id, unitPrice: p.unit_price, availableWithQuotes: p.available_with_quotes })),
-    [products]
+    () => pricedProducts.map((p) => ({ productId: p.id, unitPrice: p.unit_price, availableWithQuotes: p.available_with_quotes })),
+    [pricedProducts]
   )
 
   const estimate = useMemo(() => {
@@ -467,6 +498,8 @@ export function QuoteBuilderForm({
     setDeliveryTimeText(DEFAULT_DELIVERY_TIME_TEXT)
     setValidityText(DEFAULT_VALIDITY_TEXT)
     setNotes(DEFAULT_NOTES)
+    setQuoteCurrency('USD')
+    setTrmRate(defaultTrmRate)
     try {
       localStorage.removeItem(draftKey)
     } catch {
@@ -493,6 +526,8 @@ export function QuoteBuilderForm({
         deliveryTimeText,
         validityText,
         notes,
+        currency: quoteCurrency,
+        trmRate,
       })
       localStorage.setItem(draftKey, JSON.stringify(draft))
       setDraftJustSaved(true)
@@ -531,6 +566,10 @@ export function QuoteBuilderForm({
     formData.set('labor_percent', String(laborPercent))
     formData.set('cables_enabled', String(cablesEnabled))
     formData.set('cables_percent', String(cablesPercent))
+    formData.set('currency', quoteCurrency)
+    if (quoteCurrency === 'COP') {
+      formData.set('trm_rate', String(trmRate))
+    }
     formData.set('intro_message', introMessage)
     formData.set('payment_terms', paymentTerms)
     formData.set('delivery_time_text', deliveryTimeText)
@@ -614,6 +653,10 @@ export function QuoteBuilderForm({
           draftJustSaved={draftJustSaved}
           projectType={projectType}
           onProjectTypeChange={setProjectType}
+          quoteCurrency={quoteCurrency}
+          onToggleCurrency={() => setQuoteCurrency((prev) => (prev === 'COP' ? 'USD' : 'COP'))}
+          trmRate={trmRate}
+          onChangeTrmRate={setTrmRate}
           zones={resolvedZones}
           activeZoneId={activeZoneId}
           onSetActiveZone={setActiveZoneId}

@@ -24,6 +24,7 @@ export interface QuoteProductOption {
   reference_url: string | null
   unit_price: number
   unit_cost: number | null
+  currency: string
   available_with_quotes: number
   is_favorite?: boolean
   next_arrival_date?: string | null

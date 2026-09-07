@@ -28,6 +28,10 @@ interface CartPanelProps {
   draftJustSaved: boolean
   projectType: string
   onProjectTypeChange: (value: string) => void
+  quoteCurrency: 'USD' | 'COP'
+  onToggleCurrency: () => void
+  trmRate: number
+  onChangeTrmRate: (value: number) => void
   zones: CartZone[]
   activeZoneId: string | null
   onSetActiveZone: (zoneId: string) => void
@@ -90,6 +94,10 @@ export function CartPanel({
   draftJustSaved,
   projectType,
   onProjectTypeChange,
+  quoteCurrency,
+  onToggleCurrency,
+  trmRate,
+  onChangeTrmRate,
   zones,
   activeZoneId,
   onSetActiveZone,
@@ -268,6 +276,44 @@ export function CartPanel({
             onChange={(e) => onProjectTypeChange(e.target.value)}
             className="mt-1 w-full rounded-md border border-[#E5E9EF] bg-white px-3 py-2 text-navy placeholder-slate-muted outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
           />
+        </div>
+
+        <div className="rounded-md border border-[#E5E9EF] p-3">
+          <div className="flex items-center gap-2 text-sm">
+            <input
+              id="currency_cop"
+              type="checkbox"
+              checked={quoteCurrency === 'COP'}
+              onChange={onToggleCurrency}
+              className="h-4 w-4 rounded border-[#E5E9EF] text-brand-blue focus:ring-brand-blue/20"
+            />
+            <label htmlFor="currency_cop" className="flex-1 font-medium text-navy">
+              {t('quoteBuilder.quoteInCop')}
+            </label>
+          </div>
+          {quoteCurrency === 'COP' && (
+            <div className="mt-2 space-y-1.5 pl-6">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate">{t('quoteBuilder.trmLabel')}</span>
+                <input
+                  type="number"
+                  min={1}
+                  step="1"
+                  value={trmRate}
+                  onChange={(e) => onChangeTrmRate(Number(e.target.value))}
+                  className="w-28 rounded-md border border-[#E5E9EF] px-2 py-1 text-right text-navy outline-none focus:border-brand-blue"
+                />
+              </div>
+              <a
+                href="https://hometechcol.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block text-xs font-medium text-brand-blue hover:text-brand-blue-hover hover:underline"
+              >
+                {t('quoteBuilder.checkTrmSource')}
+              </a>
+            </div>
+          )}
         </div>
 
         <div className={`${isExpanded ? 'max-h-[40rem]' : 'max-h-[28rem]'} space-y-3 overflow-y-auto border-t border-[#E5E9EF] pt-3`}>

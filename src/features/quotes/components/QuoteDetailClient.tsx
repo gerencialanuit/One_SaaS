@@ -6,6 +6,7 @@ import { VersionHistoryList } from './VersionHistoryList'
 import { QuoteEditModal } from './QuoteEditModal'
 import { ApprovalPanel } from './ApprovalPanel'
 import { SharePdfButton } from './SharePdfButton'
+import { ViewPdfButton } from './ViewPdfButton'
 import { getQuoteVersionDetails } from '@/actions/quote-versions'
 import { getQuoteStatusLabel } from '../constants'
 import { groupByZone } from '../utils/group-by-zone'
@@ -102,14 +103,14 @@ export function QuoteDetailClient({
               instalada ese visor no trae barra de herramientas (ni compartir
               ni volver) — en movil solo dejamos el boton de Compartir/Guardar,
               que si abre el menu nativo del sistema. */}
-          <a
-            href={`/quotes/${quote.id}/pdf`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden rounded-lg border border-[#E5E9EF] px-4 py-2.5 font-medium text-slate transition-colors hover:bg-tint-blue hover:text-navy lg:inline-block"
-          >
-            {t('quoteDetail.viewPdf')}
-          </a>
+          <span className="hidden lg:inline-block">
+            <ViewPdfButton
+              url={`/quotes/${quote.id}/pdf`}
+              label={t('quoteDetail.viewPdf')}
+              closeLabel={t('quoteDetail.closePdf')}
+              className="rounded-lg border border-[#E5E9EF] px-4 py-2.5 font-medium text-slate transition-colors hover:bg-tint-blue hover:text-navy disabled:opacity-50"
+            />
+          </span>
           <SharePdfButton
             url={`/quotes/${quote.id}/pdf`}
             filename={`cotizacion-${quote.quote_number}.pdf`}
@@ -221,9 +222,14 @@ export function QuoteDetailClient({
                   </div>
                 ))}
                 <div className="flex justify-between font-heading text-lg font-bold">
-                  <span className="text-navy">{t('quoteDetail.total')}</span>
+                  <span className="text-navy">{t('quoteDetail.total')} {displayedVersion.currency === 'COP' ? '(COP)' : ''}</span>
                   <span className="text-navy">{currency(displayedVersion.total)}</span>
                 </div>
+                {displayedVersion.currency === 'COP' && displayedVersion.trm_rate && (
+                  <p className="text-xs text-slate-muted">
+                    {t('quoteDetail.currencyCopNote', { rate: currency(displayedVersion.trm_rate) })}
+                  </p>
+                )}
                 {displayedTaxes.some((tax) => tax.kind === 'withhold' && tax.enabled) && (
                   <p className="text-xs text-slate-muted">{t('quoteDetail.withholdingNote')}</p>
                 )}

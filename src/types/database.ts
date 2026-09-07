@@ -163,6 +163,8 @@ export interface QuoteVersion {
   notes: string
   created_by: string
   created_at: string
+  currency: string
+  trm_rate: number | null
 }
 
 export interface QuoteItem {

@@ -13,6 +13,7 @@ import {
   DEFAULT_VALIDITY_TEXT,
   DEFAULT_NOTES,
 } from '@/features/quotes/constants'
+import { updateDefaultTrm } from '@/actions/settings'
 
 const itemSchema = z.object({
   product_id: z.string().trim().min(1),
@@ -47,6 +48,10 @@ const versionSchema = z.object({
   delivery_time_text: z.string().trim().optional(),
   validity_text: z.string().trim().optional(),
   notes: z.string().trim().optional(),
+  // Opcionales, igual que los campos de PDF de arriba: el modal simple de
+  // edicion no los envia, asi que se conservan los de la version anterior.
+  currency: z.enum(['USD', 'COP']).optional(),
+  trm_rate: z.coerce.number().positive().optional(),
 })
 
 export async function createQuoteVersion(quoteId: string, formData: FormData) {
@@ -79,6 +84,8 @@ export async function createQuoteVersion(quoteId: string, formData: FormData) {
     delivery_time_text: formData.get('delivery_time_text') || undefined,
     validity_text: formData.get('validity_text') || undefined,
     notes: formData.has('notes') ? formData.get('notes') : undefined,
+    currency: formData.get('currency') || undefined,
+    trm_rate: formData.get('trm_rate') || undefined,
   })
 
   if (!parsed.success) {
@@ -98,17 +105,27 @@ export async function createQuoteVersion(quoteId: string, formData: FormData) {
   const [{ data: availabilityRows }, { data: productsRows }, { data: poItemsRows }, { data: discountRule }, { data: lastVersion }] =
     await Promise.all([
       supabase.from('inventory_availability').select('product_id, available_with_quotes').in('product_id', productIds),
-      supabase.from('products').select('id, unit_price').in('id', productIds),
+      supabase.from('products').select('id, unit_price, currency').in('id', productIds),
       supabase.from('purchase_order_items').select('product_id, quantity, purchase_order_id').in('product_id', productIds),
       supabase.from('discount_rules').select('max_discount_percent').eq('role', profile.role).single(),
       supabase
         .from('quote_versions')
-        .select('version_number, intro_message, payment_terms, delivery_time_text, validity_text, notes')
+        .select('version_number, intro_message, payment_terms, delivery_time_text, validity_text, notes, currency, trm_rate')
         .eq('quote_id', quoteId)
         .order('version_number', { ascending: false })
         .limit(1)
         .single(),
     ])
+
+  // Si el caller no manda moneda/TRM (ej. el modal simple de edicion, que solo
+  // cambia cantidades), se conserva la de la ultima version — igual que
+  // intro_message y el resto de campos de PDF.
+  const currency = parsed.data.currency ?? lastVersion?.currency ?? 'USD'
+  const trmRate = currency === 'COP' ? (parsed.data.trm_rate ?? lastVersion?.trm_rate ?? undefined) : undefined
+
+  if (currency === 'COP' && !trmRate) {
+    return { error: 'Ingresa la TRM para cotizar en pesos colombianos' }
+  }
 
   const poIds = [...new Set((poItemsRows ?? []).map((row) => row.purchase_order_id))]
   const { data: posRows } = poIds.length
@@ -116,8 +133,19 @@ export async function createQuoteVersion(quoteId: string, formData: FormData) {
     : { data: [] }
 
   const poMap = new Map((posRows ?? []).map((po) => [po.id, po]))
-  const priceMap = new Map((productsRows ?? []).map((p) => [p.id, p.unit_price]))
+  const productMap = new Map((productsRows ?? []).map((p) => [p.id, p]))
   const availabilityMap = new Map((availabilityRows ?? []).map((a) => [a.product_id, a.available_with_quotes]))
+
+  function resolveUnitPrice(productId: string): number {
+    const product = productMap.get(productId)
+    if (!product) return 0
+    if (currency === 'COP' && product.currency === 'USD') {
+      return product.unit_price * (trmRate ?? 0)
+    }
+    return product.unit_price
+  }
+
+  const priceMap = new Map(productIds.map((id) => [id, resolveUnitPrice(id)]))
 
   const availability = productIds.map((id) => ({
     productId: id,
@@ -180,12 +208,20 @@ export async function createQuoteVersion(quoteId: string, formData: FormData) {
       validity_text: parsed.data.validity_text ?? lastVersion?.validity_text ?? DEFAULT_VALIDITY_TEXT,
       notes: parsed.data.notes ?? lastVersion?.notes ?? DEFAULT_NOTES,
       created_by: profile.id,
+      currency,
+      trm_rate: currency === 'COP' ? trmRate : null,
     })
     .select('id')
     .single()
 
   if (versionError || !version) {
     return { error: versionError?.message ?? 'No se pudo crear la nueva versión' }
+  }
+
+  if (currency === 'COP' && parsed.data.trm_rate) {
+    // Solo actualiza el default cuando el caller realmente mando una TRM
+    // nueva (no cuando solo se heredo de la version anterior).
+    await updateDefaultTrm(parsed.data.trm_rate)
   }
 
   const { error: itemsError } = await supabase.from('quote_items').insert(

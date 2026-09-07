@@ -47,6 +47,8 @@ export interface QuotePdfData {
   commercialName: string
   commercialCargo: string | null
   commercialEmail: string
+  currency: 'USD' | 'COP'
+  trmRate: number | null
 }
 
 const currency = (value: number) => `$${Math.round(value).toLocaleString('es-CO')}`
@@ -295,7 +297,7 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
             ))}
             <View style={styles.divider} />
             <View style={styles.grandTotalRow}>
-              <Text style={styles.grandTotalLabel}>Total</Text>
+              <Text style={styles.grandTotalLabel}>Total {data.currency === 'COP' ? '(COP)' : ''}</Text>
               <Text style={styles.grandTotalValue}>{currency(data.total)}</Text>
             </View>
           </View>

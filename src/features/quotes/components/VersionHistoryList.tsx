@@ -1,6 +1,7 @@
 import type { QuoteVersion } from '@/types/database'
 import { useLocale } from '@/lib/i18n/LocaleProvider'
 import { SharePdfButton } from './SharePdfButton'
+import { ViewPdfButton } from './ViewPdfButton'
 
 const currency = (value: number) => `$${value.toLocaleString('es-CO')}`
 
@@ -79,14 +80,14 @@ export function VersionHistoryList({
               <div className="mt-1 flex flex-wrap items-center gap-3" onClick={(e) => e.stopPropagation()}>
                 {/* Mismo patron que arriba: Ver PDF (visor, solo escritorio) +
                     Compartir/Guardar (Web Share, funciona tambien en la PWA). */}
-                <a
-                  href={`/quotes/${quoteId}/pdf?versionId=${version.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hidden text-xs font-medium text-brand-blue hover:text-brand-blue-hover hover:underline lg:inline-block"
-                >
-                  {t('quoteDetail.viewPdf')}
-                </a>
+                <span className="hidden lg:inline-block">
+                  <ViewPdfButton
+                    url={`/quotes/${quoteId}/pdf?versionId=${version.id}`}
+                    label={t('quoteDetail.viewPdf')}
+                    closeLabel={t('quoteDetail.closePdf')}
+                    className="text-xs font-medium text-brand-blue hover:text-brand-blue-hover hover:underline disabled:opacity-50"
+                  />
+                </span>
                 <SharePdfButton
                   url={`/quotes/${quoteId}/pdf?versionId=${version.id}`}
                   filename={`cotizacion-v${version.version_number}.pdf`}

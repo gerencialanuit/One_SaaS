@@ -81,6 +81,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     commercialName: quote.commercial?.full_name || quote.commercial?.email || '—',
     commercialCargo: quote.commercial?.cargo ?? null,
     commercialEmail: quote.commercial?.commercial_email || quote.commercial?.email || '—',
+    currency: (version.currency ?? 'USD') as 'USD' | 'COP',
+    trmRate: version.trm_rate ?? null,
   }
 
   const buffer = await renderToBuffer(<QuotePdfDocument data={pdfData} />)

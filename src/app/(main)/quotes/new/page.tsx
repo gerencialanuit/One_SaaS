@@ -3,12 +3,14 @@ import { createClient } from '@/lib/supabase/server'
 import { getCurrentProfile } from '@/lib/supabase/profile'
 import { QuoteBuilderForm } from '@/features/quotes/components/QuoteBuilderForm'
 import { getTranslator } from '@/lib/i18n/server'
+import { getDefaultTrm } from '@/actions/settings'
 import type { IncomingOrder } from '@/features/quotes/utils/estimate'
 
 export default async function NewQuotePage() {
   const supabase = await createClient()
   const profile = await getCurrentProfile()
   const { t } = await getTranslator()
+  const defaultTrmRate = await getDefaultTrm()
 
   const [
     { data: clients },
@@ -22,7 +24,7 @@ export default async function NewQuotePage() {
     supabase.from('clients').select('id, name').order('name'),
     supabase
       .from('products')
-      .select('id, name, description, sku, category:categories(name, parent:parent_id(name)), brand:brands(name), line, condition, supply_model, image_url, reference_url, unit_price, unit_cost')
+      .select('id, name, description, sku, category:categories(name, parent:parent_id(name)), brand:brands(name), line, condition, supply_model, image_url, reference_url, unit_price, unit_cost, currency')
       .eq('is_active', true)
       .neq('condition', 'averiado')
       .order('name'),
@@ -99,6 +101,7 @@ export default async function NewQuotePage() {
           templates={templates ?? []}
           currentProfileId={profile?.id ?? ''}
           isGerente={profile?.role === 'gerente'}
+          defaultTrmRate={defaultTrmRate}
         />
       </div>
     </div>

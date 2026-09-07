@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  // sharp tiene un binario nativo: se usa en los route handlers de PDF para
+  // convertir fotos de producto (a menudo .webp) a PNG, que es lo unico que
+  // @react-pdf/renderer sabe leer. Si se empaqueta en vez de tratarse como
+  // externo, el binario nativo se rompe en produccion.
+  serverExternalPackages: ['sharp'],
 }
 
 export default nextConfig

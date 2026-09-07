@@ -27,6 +27,7 @@ export function QuotesTable({ quotes }: QuotesTableProps) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-[#E5E9EF] text-left text-slate">
+            <th className="px-4 py-3 font-medium">{t('quotes.table.number')}</th>
             <th className="px-4 py-3 font-medium">{t('quotes.table.client')}</th>
             <th className="px-4 py-3 font-medium">{t('quotes.table.project')}</th>
             <th className="px-4 py-3 font-medium">{t('quotes.table.commercial')}</th>
@@ -40,6 +41,11 @@ export function QuotesTable({ quotes }: QuotesTableProps) {
             const status = getQuoteStatusLabel(locale, quote.status)
             return (
               <tr key={quote.id} className="border-b border-[#E5E9EF] hover:bg-tint-blue/50">
+                <td className="px-4 py-3">
+                  <Link href={`/quotes/${quote.id}`} className="font-mono text-xs font-medium text-slate hover:text-brand-blue hover:underline">
+                    {quote.quote_number}
+                  </Link>
+                </td>
                 <td className="px-4 py-3 font-medium text-navy">
                   <Link href={`/quotes/${quote.id}`} className="hover:text-brand-blue hover:underline">
                     {quote.client?.name ?? '—'}

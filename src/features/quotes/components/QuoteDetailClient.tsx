@@ -54,6 +54,7 @@ export function QuoteDetailClient({
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <div>
+          <p className="font-mono text-xs font-medium text-slate-muted">{quote.quote_number}</p>
           <h1 className="font-heading text-3xl font-bold text-navy">{quote.client?.name ?? t('quoteDetail.fallbackTitle')}</h1>
           <p className="mt-1 text-slate">{quote.project_type}</p>
           <p className="mt-0.5 text-xs text-slate-muted">{t('quoteDetail.responsible')} {quote.commercial?.full_name || quote.commercial?.email || '—'}</p>
@@ -70,7 +71,15 @@ export function QuoteDetailClient({
           >
             {t('quoteDetail.downloadPdf')}
           </a>
-          {canEdit && (
+          {canEdit && quote.status === 'draft' && (
+            <Link
+              href={`/quotes/${quote.id}/edit`}
+              className="rounded-lg bg-brand-blue px-5 py-2.5 font-medium text-white transition-colors hover:bg-brand-blue-hover"
+            >
+              {t('quoteDetail.edit')}
+            </Link>
+          )}
+          {canEdit && quote.status !== 'draft' && (
             <button
               type="button"
               onClick={() => setShowEdit(true)}

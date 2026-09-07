@@ -35,6 +35,7 @@ export function QuotesPageClient({ quotes }: QuotesPageClientProps) {
     return quotes.filter((quote) => {
       const commercial = quote.commercial?.full_name || quote.commercial?.email || ''
       return (
+        quote.quote_number.toLowerCase().includes(term) ||
         (quote.client?.name ?? '').toLowerCase().includes(term) ||
         quote.project_type.toLowerCase().includes(term) ||
         commercial.toLowerCase().includes(term)

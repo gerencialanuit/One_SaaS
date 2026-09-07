@@ -22,6 +22,10 @@ interface CartPanelProps {
   clients: ClientOption[]
   clientId: string
   onClientChange: (value: string) => void
+  onAddClient: () => void
+  onClearDraft: () => void
+  onSaveDraft: () => void
+  draftJustSaved: boolean
   projectType: string
   onProjectTypeChange: (value: string) => void
   zones: CartZone[]
@@ -49,6 +53,16 @@ interface CartPanelProps {
   cablesPercent: number
   onToggleCables: () => void
   onChangeCablesPercent: (value: number) => void
+  introMessage: string
+  onChangeIntroMessage: (value: string) => void
+  paymentTerms: string
+  onChangePaymentTerms: (value: string) => void
+  deliveryTimeText: string
+  onChangeDeliveryTimeText: (value: string) => void
+  validityText: string
+  onChangeValidityText: (value: string) => void
+  notes: string
+  onChangeNotes: (value: string) => void
   taxes: TaxLine[]
   totals: QuoteTotals
   onToggleTax: (index: number) => void
@@ -61,12 +75,19 @@ interface CartPanelProps {
   onOpenSaveTemplate: () => void
   isExpanded: boolean
   onToggleExpand: () => void
+  hideDraftControls?: boolean
+  submitLabel?: string
+  submittingLabel?: string
 }
 
 export function CartPanel({
   clients,
   clientId,
   onClientChange,
+  onAddClient,
+  onClearDraft,
+  onSaveDraft,
+  draftJustSaved,
   projectType,
   onProjectTypeChange,
   zones,
@@ -94,6 +115,16 @@ export function CartPanel({
   cablesPercent,
   onToggleCables,
   onChangeCablesPercent,
+  introMessage,
+  onChangeIntroMessage,
+  paymentTerms,
+  onChangePaymentTerms,
+  deliveryTimeText,
+  onChangeDeliveryTimeText,
+  validityText,
+  onChangeValidityText,
+  notes,
+  onChangeNotes,
   taxes,
   totals,
   onToggleTax,
@@ -106,6 +137,9 @@ export function CartPanel({
   onOpenSaveTemplate,
   isExpanded,
   onToggleExpand,
+  hideDraftControls,
+  submitLabel,
+  submittingLabel,
 }: CartPanelProps) {
   const { t } = useLocale()
   useEscapeClose(() => {
@@ -126,7 +160,28 @@ export function CartPanel({
       >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-heading text-lg font-semibold text-navy">{t('quoteBuilder.cartTitle')}</h2>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {!hideDraftControls && (
+            <button
+              type="button"
+              onClick={onSaveDraft}
+              title={draftJustSaved ? t('quoteBuilder.draftSaved') : t('quoteBuilder.saveDraft')}
+              aria-label={t('quoteBuilder.saveDraft')}
+              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-slate transition-colors hover:border-navy hover:text-navy ${draftJustSaved ? 'border-[#038A06] text-[#038A06]' : 'border-[#E5E9EF]'}`}
+            >
+              {draftJustSaved ? (
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-4 w-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 10.5l4 4 8-9" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-4 w-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 3.5h9.5L17 7v9.5a1 1 0 01-1 1H4a1 1 0 01-1-1v-12a1 1 0 011-1z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.5 3.5v4h6v-4" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.5 17v-5h7v5" />
+                </svg>
+              )}
+            </button>
+          )}
           <button
             type="button"
             onClick={onOpenTemplatePicker}
@@ -142,6 +197,15 @@ export function CartPanel({
           >
             {t('quoteBuilder.saveTemplate')}
           </button>
+          {!hideDraftControls && (
+            <button
+              type="button"
+              onClick={onClearDraft}
+              className="rounded-md border border-[#E5E9EF] px-2.5 py-1 text-xs font-medium text-slate transition-colors hover:border-red-300 hover:text-red-600"
+            >
+              {t('quoteBuilder.clearDraft')}
+            </button>
+          )}
           <button
             type="button"
             onClick={onToggleExpand}
@@ -164,19 +228,32 @@ export function CartPanel({
       <form action={onSubmit} className="mt-4 space-y-4">
         <div>
           <label htmlFor="client_id" className="block text-sm font-medium text-navy">{t('quoteBuilder.client')}</label>
-          <select
-            id="client_id"
-            name="client_id"
-            required
-            value={clientId}
-            onChange={(e) => onClientChange(e.target.value)}
-            className="mt-1 w-full rounded-md border border-[#E5E9EF] bg-white px-3 py-2 text-navy outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
-          >
-            <option value="">{t('quoteBuilder.selectClient')}</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
+          <div className="mt-1 flex gap-2">
+            <select
+              id="client_id"
+              name="client_id"
+              required
+              value={clientId}
+              onChange={(e) => onClientChange(e.target.value)}
+              className="w-full flex-1 rounded-md border border-[#E5E9EF] bg-white px-3 py-2 text-navy outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
+            >
+              <option value="">{t('quoteBuilder.selectClient')}</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={onAddClient}
+              title={t('clients.new')}
+              aria-label={t('clients.new')}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-[#E5E9EF] text-slate transition-colors hover:border-brand-blue hover:text-brand-blue"
+            >
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-4 w-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 4v12M4 10h12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div>
@@ -427,6 +504,88 @@ export function CartPanel({
           </div>
         )}
 
+        <div className="space-y-2 border-t border-[#E5E9EF] pt-3">
+          <details className="group rounded-md border border-[#E5E9EF]">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-sm font-medium text-navy">
+              {t('quoteBuilder.introMessageLabel')}
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-4 w-4 shrink-0 text-slate transition-transform group-open:rotate-180">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 7.5l5 5 5-5" />
+              </svg>
+            </summary>
+            <div className="border-t border-[#E5E9EF] p-3">
+              <textarea
+                name="intro_message"
+                rows={3}
+                value={introMessage}
+                onChange={(e) => onChangeIntroMessage(e.target.value)}
+                className="w-full rounded-md border border-[#E5E9EF] bg-white px-3 py-2 text-sm text-navy outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
+              />
+            </div>
+          </details>
+
+          <details className="group rounded-md border border-[#E5E9EF]">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-sm font-medium text-navy">
+              {t('quoteBuilder.commercialConditionsLabel')}
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-4 w-4 shrink-0 text-slate transition-transform group-open:rotate-180">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 7.5l5 5 5-5" />
+              </svg>
+            </summary>
+            <div className="space-y-3 border-t border-[#E5E9EF] p-3">
+              <div>
+                <label htmlFor="payment_terms" className="block text-xs font-medium text-slate">{t('quoteBuilder.paymentTermsLabel')}</label>
+                <input
+                  id="payment_terms"
+                  name="payment_terms"
+                  type="text"
+                  value={paymentTerms}
+                  onChange={(e) => onChangePaymentTerms(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-[#E5E9EF] bg-white px-3 py-2 text-sm text-navy outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
+                />
+              </div>
+              <div>
+                <label htmlFor="delivery_time_text" className="block text-xs font-medium text-slate">{t('quoteBuilder.deliveryTimeTextLabel')}</label>
+                <input
+                  id="delivery_time_text"
+                  name="delivery_time_text"
+                  type="text"
+                  value={deliveryTimeText}
+                  onChange={(e) => onChangeDeliveryTimeText(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-[#E5E9EF] bg-white px-3 py-2 text-sm text-navy outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
+                />
+              </div>
+              <div>
+                <label htmlFor="validity_text" className="block text-xs font-medium text-slate">{t('quoteBuilder.validityTextLabel')}</label>
+                <input
+                  id="validity_text"
+                  name="validity_text"
+                  type="text"
+                  value={validityText}
+                  onChange={(e) => onChangeValidityText(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-[#E5E9EF] bg-white px-3 py-2 text-sm text-navy outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
+                />
+              </div>
+            </div>
+          </details>
+
+          <details className="group rounded-md border border-[#E5E9EF]">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-sm font-medium text-navy">
+              {t('quoteBuilder.notesLabel')}
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-4 w-4 shrink-0 text-slate transition-transform group-open:rotate-180">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 7.5l5 5 5-5" />
+              </svg>
+            </summary>
+            <div className="border-t border-[#E5E9EF] p-3">
+              <textarea
+                name="notes"
+                rows={2}
+                value={notes}
+                onChange={(e) => onChangeNotes(e.target.value)}
+                className="w-full rounded-md border border-[#E5E9EF] bg-white px-3 py-2 text-sm text-navy outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
+              />
+            </div>
+          </details>
+        </div>
+
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         <button
@@ -434,7 +593,7 @@ export function CartPanel({
           disabled={loading || !hasItems}
           className="w-full rounded-lg bg-brand-blue px-5 py-2.5 font-medium text-white transition-colors hover:bg-brand-blue-hover disabled:opacity-50"
         >
-          {loading ? t('quoteBuilder.submitting') : t('quoteBuilder.submit')}
+          {loading ? (submittingLabel ?? t('quoteBuilder.submitting')) : (submitLabel ?? t('quoteBuilder.submit'))}
         </button>
       </form>
       </div>

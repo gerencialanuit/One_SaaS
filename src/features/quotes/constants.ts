@@ -17,3 +17,12 @@ export function getQuoteStatusLabel(locale: Locale, status: string): { label: st
     className: QUOTE_STATUS_CLASSNAMES[status] ?? QUOTE_STATUS_CLASSNAMES.draft,
   }
 }
+
+// Contenido predeterminado del PDF de cotizacion — precargado en el
+// formulario y como default de columna en la BD; editable por cotizacion.
+export const DEFAULT_INTRO_MESSAGE =
+  'Atendiendo a su amable solicitud, nos permitimos enviar la siguiente cotización de control de automatización, con su respectiva descripción y precios:'
+export const DEFAULT_PAYMENT_TERMS = '50% anticipo · 50% contra entrega'
+export const DEFAULT_DELIVERY_TIME_TEXT = '45 días hábiles desde el anticipo'
+export const DEFAULT_VALIDITY_TEXT = '30 días calendario'
+export const DEFAULT_NOTES = 'Esta cotización no incluye obra civil ni acabados.'

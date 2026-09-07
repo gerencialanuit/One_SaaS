@@ -6,10 +6,18 @@ import { createClient } from '@/lib/supabase/server'
 import { getCurrentProfile } from '@/lib/supabase/profile'
 import { computeQuoteEstimate, type IncomingOrder } from '@/features/quotes/utils/estimate'
 import { computeQuoteTotals, DEFAULT_TAX_LINES, LABOR_LINE_NAME, CABLES_LINE_NAME, type TaxLine } from '@/features/quotes/utils/taxes'
+import {
+  DEFAULT_INTRO_MESSAGE,
+  DEFAULT_PAYMENT_TERMS,
+  DEFAULT_DELIVERY_TIME_TEXT,
+  DEFAULT_VALIDITY_TEXT,
+  DEFAULT_NOTES,
+} from '@/features/quotes/constants'
 
 const itemSchema = z.object({
   product_id: z.string().trim().min(1),
   quantity: z.coerce.number().int().positive('La cantidad debe ser mayor a 0'),
+  zone_name: z.string().trim().optional(),
 })
 
 const taxLineSchema = z.object({
@@ -20,6 +28,10 @@ const taxLineSchema = z.object({
 })
 
 const versionSchema = z.object({
+  // Opcionales: el modal simple de edicion no permite cambiar cliente/tipo de
+  // proyecto, solo el flujo completo (carrito) los envia.
+  client_id: z.string().trim().optional(),
+  project_type: z.string().trim().optional(),
   discount_percent: z.coerce.number().min(0, 'El descuento no puede ser negativo').max(100, 'El descuento no puede superar 100%'),
   items: z.array(itemSchema).min(1, 'Agrega al menos un producto'),
   taxes: z.array(taxLineSchema).optional(),
@@ -27,6 +39,14 @@ const versionSchema = z.object({
   labor_percent: z.coerce.number().min(0, 'La mano de obra no puede ser negativa').max(100, 'La mano de obra no puede superar 100%').default(0),
   cables_enabled: z.string().optional().transform((v) => v === 'true'),
   cables_percent: z.coerce.number().min(0, 'Cables y accesorios no puede ser negativo').max(100, 'Cables y accesorios no puede superar 100%').default(0),
+  // Opcionales: si el caller no los envia (ej. el modal simple de edicion,
+  // que no tiene campos para esto), se conservan los de la version anterior
+  // en vez de perderlos silenciosamente.
+  intro_message: z.string().trim().optional(),
+  payment_terms: z.string().trim().optional(),
+  delivery_time_text: z.string().trim().optional(),
+  validity_text: z.string().trim().optional(),
+  notes: z.string().trim().optional(),
 })
 
 export async function createQuoteVersion(quoteId: string, formData: FormData) {
@@ -45,6 +65,8 @@ export async function createQuoteVersion(quoteId: string, formData: FormData) {
   }
 
   const parsed = versionSchema.safeParse({
+    client_id: formData.get('client_id') || undefined,
+    project_type: formData.get('project_type') || undefined,
     discount_percent: formData.get('discount_percent') || '0',
     items: rawItems,
     taxes: rawTaxes,
@@ -52,6 +74,11 @@ export async function createQuoteVersion(quoteId: string, formData: FormData) {
     labor_percent: formData.get('labor_percent') || '0',
     cables_enabled: formData.get('cables_enabled') || undefined,
     cables_percent: formData.get('cables_percent') || '0',
+    intro_message: formData.get('intro_message') || undefined,
+    payment_terms: formData.get('payment_terms') || undefined,
+    delivery_time_text: formData.get('delivery_time_text') || undefined,
+    validity_text: formData.get('validity_text') || undefined,
+    notes: formData.has('notes') ? formData.get('notes') : undefined,
   })
 
   if (!parsed.success) {
@@ -76,7 +103,7 @@ export async function createQuoteVersion(quoteId: string, formData: FormData) {
       supabase.from('discount_rules').select('max_discount_percent').eq('role', profile.role).single(),
       supabase
         .from('quote_versions')
-        .select('version_number')
+        .select('version_number, intro_message, payment_terms, delivery_time_text, validity_text, notes')
         .eq('quote_id', quoteId)
         .order('version_number', { ascending: false })
         .limit(1)
@@ -106,9 +133,17 @@ export async function createQuoteVersion(quoteId: string, formData: FormData) {
     })
     .filter((x): x is IncomingOrder => x !== null)
 
+  // La disponibilidad/fecha de entrega se evalua sobre la DEMANDA TOTAL por
+  // producto (sumada entre zonas), no linea por linea — dos zonas pidiendo el
+  // mismo producto compiten por el mismo stock (igual que en createQuote).
+  const mergedQuantities = new Map<string, number>()
+  for (const item of parsed.data.items) {
+    mergedQuantities.set(item.product_id, (mergedQuantities.get(item.product_id) ?? 0) + item.quantity)
+  }
+
   const today = new Date().toISOString().slice(0, 10)
   const estimate = computeQuoteEstimate(
-    parsed.data.items.map((item) => ({ productId: item.product_id, quantity: item.quantity })),
+    Array.from(mergedQuantities.entries()).map(([productId, quantity]) => ({ productId, quantity })),
     availability,
     incomingOrders,
     today
@@ -139,6 +174,11 @@ export async function createQuoteVersion(quoteId: string, formData: FormData) {
       total,
       estimated_delivery_date: estimate.estimatedDeliveryDate,
       requires_approval: requiresApproval,
+      intro_message: parsed.data.intro_message ?? lastVersion?.intro_message ?? DEFAULT_INTRO_MESSAGE,
+      payment_terms: parsed.data.payment_terms ?? lastVersion?.payment_terms ?? DEFAULT_PAYMENT_TERMS,
+      delivery_time_text: parsed.data.delivery_time_text ?? lastVersion?.delivery_time_text ?? DEFAULT_DELIVERY_TIME_TEXT,
+      validity_text: parsed.data.validity_text ?? lastVersion?.validity_text ?? DEFAULT_VALIDITY_TEXT,
+      notes: parsed.data.notes ?? lastVersion?.notes ?? DEFAULT_NOTES,
       created_by: profile.id,
     })
     .select('id')
@@ -149,11 +189,12 @@ export async function createQuoteVersion(quoteId: string, formData: FormData) {
   }
 
   const { error: itemsError } = await supabase.from('quote_items').insert(
-    estimate.items.map((item) => ({
+    parsed.data.items.map((item) => ({
       quote_version_id: version.id,
-      product_id: item.productId,
+      product_id: item.product_id,
       quantity: item.quantity,
-      unit_price: item.unitPrice,
+      unit_price: priceMap.get(item.product_id) ?? 0,
+      zone_name: item.zone_name || null,
     }))
   )
 
@@ -197,6 +238,8 @@ export async function createQuoteVersion(quoteId: string, formData: FormData) {
     .update({
       current_version_id: version.id,
       status: requiresApproval ? 'pending_approval' : 'draft',
+      ...(parsed.data.client_id ? { client_id: parsed.data.client_id } : {}),
+      ...(parsed.data.project_type ? { project_type: parsed.data.project_type } : {}),
       updated_at: new Date().toISOString(),
     })
     .eq('id', quoteId)

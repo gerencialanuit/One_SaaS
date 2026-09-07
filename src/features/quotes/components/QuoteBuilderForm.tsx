@@ -1,11 +1,14 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createQuote } from '@/actions/quotes'
+import { createQuoteVersion } from '@/actions/quote-versions'
 import { useLocale } from '@/lib/i18n/LocaleProvider'
+import { ClientFormModal } from '@/features/clients/components/ClientFormModal'
 import { computeQuoteEstimate, type IncomingOrder } from '../utils/estimate'
 import { computeQuoteTotals, DEFAULT_CABLES_RATE, DEFAULT_LABOR_RATE, DEFAULT_TAX_LINES, type TaxLine } from '../utils/taxes'
+import { DEFAULT_INTRO_MESSAGE, DEFAULT_PAYMENT_TERMS, DEFAULT_DELIVERY_TIME_TEXT, DEFAULT_VALIDITY_TEXT, DEFAULT_NOTES } from '../constants'
 import { ProductCatalogGrid } from './ProductCatalogGrid'
 import { CartPanel, type CartZone } from './CartPanel'
 import { TemplatePickerModal } from './TemplatePickerModal'
@@ -20,6 +23,29 @@ interface ClientOption {
   name: string
 }
 
+export interface QuoteBuilderEditInitial {
+  clientId: string
+  projectType: string
+  zones: { name: string; items: { product_id: string; quantity: number }[] }[]
+  discountEnabled: boolean
+  discountPercent: number
+  laborEnabled: boolean
+  laborPercent: number
+  cablesEnabled: boolean
+  cablesPercent: number
+  taxes: TaxLine[]
+  introMessage: string
+  paymentTerms: string
+  deliveryTimeText: string
+  validityText: string
+  notes: string
+}
+
+export interface QuoteBuilderEditMode {
+  quoteId: string
+  initial: QuoteBuilderEditInitial
+}
+
 interface QuoteBuilderFormProps {
   clients: ClientOption[]
   products: QuoteProductOption[]
@@ -28,6 +54,7 @@ interface QuoteBuilderFormProps {
   templates: QuoteTemplateWithItems[]
   currentProfileId: string
   isGerente: boolean
+  editMode?: QuoteBuilderEditMode
 }
 
 interface Zone {
@@ -40,34 +67,182 @@ function newZone(index: number): Zone {
   return { id: crypto.randomUUID(), name: `Zona ${index}`, items: new Map() }
 }
 
+function zonesFromEditInitial(zones: QuoteBuilderEditInitial['zones']): Zone[] {
+  return zones.map((zone) => ({
+    id: crypto.randomUUID(),
+    name: zone.name,
+    items: new Map(zone.items.map((item) => [item.product_id, item.quantity])),
+  }))
+}
+
+const DEFAULT_TAXES = DEFAULT_TAX_LINES
+
+interface StoredDraft {
+  clientId: string
+  projectType: string
+  zones: { id: string; name: string; items: [string, number][] }[]
+  activeZoneId: string | null
+  taxes: TaxLine[]
+  discountEnabled: boolean
+  discountPercent: number
+  laborEnabled: boolean
+  laborPercent: number
+  cablesEnabled: boolean
+  cablesPercent: number
+  introMessage: string
+  paymentTerms: string
+  deliveryTimeText: string
+  validityText: string
+  notes: string
+}
+
+function buildDraft(state: {
+  clientId: string
+  projectType: string
+  zones: Zone[]
+  activeZoneId: string | null
+  taxes: TaxLine[]
+  discountEnabled: boolean
+  discountPercent: number
+  laborEnabled: boolean
+  laborPercent: number
+  cablesEnabled: boolean
+  cablesPercent: number
+  introMessage: string
+  paymentTerms: string
+  deliveryTimeText: string
+  validityText: string
+  notes: string
+}): StoredDraft {
+  return {
+    clientId: state.clientId,
+    projectType: state.projectType,
+    zones: state.zones.map((z) => ({ id: z.id, name: z.name, items: Array.from(z.items.entries()) })),
+    activeZoneId: state.activeZoneId,
+    taxes: state.taxes,
+    discountEnabled: state.discountEnabled,
+    discountPercent: state.discountPercent,
+    laborEnabled: state.laborEnabled,
+    laborPercent: state.laborPercent,
+    cablesEnabled: state.cablesEnabled,
+    cablesPercent: state.cablesPercent,
+    introMessage: state.introMessage,
+    paymentTerms: state.paymentTerms,
+    deliveryTimeText: state.deliveryTimeText,
+    validityText: state.validityText,
+    notes: state.notes,
+  }
+}
+
 export function QuoteBuilderForm({
-  clients,
+  clients: initialClients,
   products,
   incomingOrders,
   maxDiscountPercent,
   templates,
   currentProfileId,
   isGerente,
+  editMode,
 }: QuoteBuilderFormProps) {
   const router = useRouter()
   const { t } = useLocale()
-  const [clientId, setClientId] = useState('')
-  const [projectType, setProjectType] = useState('')
-  const [zones, setZones] = useState<Zone[]>([])
+  const draftKey = `quoteBuilderDraft:${currentProfileId || 'anon'}`
+  const initial = editMode?.initial
+  const [clients, setClients] = useState<ClientOption[]>(initialClients)
+  const [clientId, setClientId] = useState(initial?.clientId ?? '')
+  const [projectType, setProjectType] = useState(initial?.projectType ?? '')
+  const [zones, setZones] = useState<Zone[]>(initial ? zonesFromEditInitial(initial.zones) : [])
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null)
-  const [taxes, setTaxes] = useState<TaxLine[]>(DEFAULT_TAX_LINES)
-  const [discountEnabled, setDiscountEnabled] = useState(false)
-  const [discountPercent, setDiscountPercent] = useState(0)
-  const [laborEnabled, setLaborEnabled] = useState(true)
-  const [laborPercent, setLaborPercent] = useState(DEFAULT_LABOR_RATE)
-  const [cablesEnabled, setCablesEnabled] = useState(true)
-  const [cablesPercent, setCablesPercent] = useState(DEFAULT_CABLES_RATE)
+  const [taxes, setTaxes] = useState<TaxLine[]>(initial?.taxes && initial.taxes.length > 0 ? initial.taxes : DEFAULT_TAX_LINES)
+  const [discountEnabled, setDiscountEnabled] = useState(initial?.discountEnabled ?? false)
+  const [discountPercent, setDiscountPercent] = useState(initial?.discountPercent ?? 0)
+  const [laborEnabled, setLaborEnabled] = useState(initial?.laborEnabled ?? true)
+  const [laborPercent, setLaborPercent] = useState(initial?.laborPercent ?? DEFAULT_LABOR_RATE)
+  const [cablesEnabled, setCablesEnabled] = useState(initial?.cablesEnabled ?? true)
+  const [cablesPercent, setCablesPercent] = useState(initial?.cablesPercent ?? DEFAULT_CABLES_RATE)
+  const [introMessage, setIntroMessage] = useState(initial?.introMessage ?? DEFAULT_INTRO_MESSAGE)
+  const [paymentTerms, setPaymentTerms] = useState(initial?.paymentTerms ?? DEFAULT_PAYMENT_TERMS)
+  const [deliveryTimeText, setDeliveryTimeText] = useState(initial?.deliveryTimeText ?? DEFAULT_DELIVERY_TIME_TEXT)
+  const [validityText, setValidityText] = useState(initial?.validityText ?? DEFAULT_VALIDITY_TEXT)
+  const [notes, setNotes] = useState(initial?.notes ?? DEFAULT_NOTES)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
+  const [showNewClient, setShowNewClient] = useState(false)
   const [isCartExpanded, setIsCartExpanded] = useState(false)
   const [pendingProductId, setPendingProductId] = useState<string | null>(null)
+  // Estado (no ref): un ref queda desincronizado del render que lo lee cuando
+  // React vuelve a invocar los efectos (Strict Mode en desarrollo), lo que
+  // provocaba que el efecto de guardado sobreescribiera el borrador recien
+  // cargado con el estado inicial vacio. Con estado, el efecto de guardado de
+  // ese mismo render "ve" siempre isDraftHydrated=false hasta el siguiente
+  // render ya con los datos restaurados.
+  const [isDraftHydrated, setIsDraftHydrated] = useState(false)
+  const [draftJustSaved, setDraftJustSaved] = useState(false)
+
+  useEffect(() => {
+    if (editMode) {
+      // Editando una cotizacion existente: el estado ya viene sembrado desde
+      // `initial`, no del borrador de "nueva cotizacion" en localStorage.
+      setIsDraftHydrated(true)
+      return
+    }
+    try {
+      const raw = localStorage.getItem(draftKey)
+      if (raw) {
+        const draft: StoredDraft = JSON.parse(raw)
+        setClientId(draft.clientId ?? '')
+        setProjectType(draft.projectType ?? '')
+        setZones((draft.zones ?? []).map((z) => ({ id: z.id, name: z.name, items: new Map(z.items) })))
+        setActiveZoneId(draft.activeZoneId ?? null)
+        setTaxes(draft.taxes && draft.taxes.length > 0 ? draft.taxes : DEFAULT_TAXES)
+        setDiscountEnabled(!!draft.discountEnabled)
+        setDiscountPercent(draft.discountPercent ?? 0)
+        setLaborEnabled(draft.laborEnabled ?? true)
+        setLaborPercent(draft.laborPercent ?? DEFAULT_LABOR_RATE)
+        setCablesEnabled(draft.cablesEnabled ?? true)
+        setCablesPercent(draft.cablesPercent ?? DEFAULT_CABLES_RATE)
+        setIntroMessage(draft.introMessage ?? DEFAULT_INTRO_MESSAGE)
+        setPaymentTerms(draft.paymentTerms ?? DEFAULT_PAYMENT_TERMS)
+        setDeliveryTimeText(draft.deliveryTimeText ?? DEFAULT_DELIVERY_TIME_TEXT)
+        setValidityText(draft.validityText ?? DEFAULT_VALIDITY_TEXT)
+        setNotes(draft.notes ?? DEFAULT_NOTES)
+      }
+    } catch {
+      // borrador corrupto o localStorage no disponible: se ignora y se parte de un carrito vacio
+    } finally {
+      setIsDraftHydrated(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (!isDraftHydrated || editMode) return
+    try {
+      const draft = buildDraft({
+        clientId,
+        projectType,
+        zones,
+        activeZoneId,
+        taxes,
+        discountEnabled,
+        discountPercent,
+        laborEnabled,
+        laborPercent,
+        cablesEnabled,
+        cablesPercent,
+        introMessage,
+        paymentTerms,
+        deliveryTimeText,
+        validityText,
+        notes,
+      })
+      localStorage.setItem(draftKey, JSON.stringify(draft))
+    } catch {
+      // localStorage no disponible (privado/bloqueado): el borrador simplemente no persiste
+    }
+  }, [isDraftHydrated, draftKey, clientId, projectType, zones, activeZoneId, taxes, discountEnabled, discountPercent, laborEnabled, laborPercent, cablesEnabled, cablesPercent, introMessage, paymentTerms, deliveryTimeText, validityText, notes])
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
 
@@ -183,11 +358,13 @@ export function QuoteBuilderForm({
   }
 
   function addZone() {
-    setZones((prev) => {
-      const zone = newZone(prev.length + 1)
-      setActiveZoneId(zone.id)
-      return [...prev, zone]
-    })
+    // El id se genera FUERA del actualizador: en React Strict Mode (dev) la
+    // funcion pasada a setZones puede invocarse mas de una vez, y si
+    // crypto.randomUUID() se llamara adentro, activeZoneId terminaria
+    // apuntando a un id distinto al que realmente quedo en el arreglo.
+    const newId = crypto.randomUUID()
+    setZones((prev) => [...prev, { id: newId, name: `Zona ${prev.length + 1}`, items: new Map() }])
+    setActiveZoneId(newId)
   }
 
   function renameZone(zoneId: string, name: string) {
@@ -205,24 +382,29 @@ export function QuoteBuilderForm({
   }
 
   function addProductToZone(productId: string, zoneId: string | null) {
-    setZones((prev) => {
-      let targetId = zoneId
-      let next = prev
+    // resolvedZoneId se decide ANTES de llamar a setZones: la funcion que se
+    // le pasa a setZones no corre de inmediato (React la difiere hasta que
+    // procesa la actualizacion), asi que mutar una variable "por fuera"
+    // dentro de ese callback y leerla justo despues (como se intento antes)
+    // siempre lee el valor viejo.
+    const targetExists = !!zoneId && zones.some((z) => z.id === zoneId)
+    const resolvedZoneId = targetExists ? (zoneId as string) : crypto.randomUUID()
 
-      if (!targetId || !prev.some((z) => z.id === targetId)) {
-        const zone = newZone(prev.length + 1)
-        next = [...prev, zone]
-        targetId = zone.id
-        setActiveZoneId(zone.id)
+    setZones((prev) => {
+      if (targetExists) {
+        return prev.map((z) => {
+          if (z.id !== resolvedZoneId) return z
+          const items = new Map(z.items)
+          items.set(productId, (items.get(productId) ?? 0) + 1)
+          return { ...z, items }
+        })
       }
 
-      return next.map((z) => {
-        if (z.id !== targetId) return z
-        const items = new Map(z.items)
-        items.set(productId, (items.get(productId) ?? 0) + 1)
-        return { ...z, items }
-      })
+      const zone: Zone = { id: resolvedZoneId, name: `Zona ${prev.length + 1}`, items: new Map([[productId, 1]]) }
+      return [...prev, zone]
     })
+
+    setActiveZoneId(resolvedZoneId)
   }
 
   function requestAddProduct(productId: string) {
@@ -267,6 +449,59 @@ export function QuoteBuilderForm({
     )
   }
 
+  function clearDraft() {
+    if (!window.confirm(t('quoteBuilder.clearDraftConfirm'))) return
+    setClientId('')
+    setProjectType('')
+    setZones([])
+    setActiveZoneId(null)
+    setTaxes(DEFAULT_TAXES)
+    setDiscountEnabled(false)
+    setDiscountPercent(0)
+    setLaborEnabled(true)
+    setLaborPercent(DEFAULT_LABOR_RATE)
+    setCablesEnabled(true)
+    setCablesPercent(DEFAULT_CABLES_RATE)
+    setIntroMessage(DEFAULT_INTRO_MESSAGE)
+    setPaymentTerms(DEFAULT_PAYMENT_TERMS)
+    setDeliveryTimeText(DEFAULT_DELIVERY_TIME_TEXT)
+    setValidityText(DEFAULT_VALIDITY_TEXT)
+    setNotes(DEFAULT_NOTES)
+    try {
+      localStorage.removeItem(draftKey)
+    } catch {
+      // localStorage no disponible: nada que limpiar
+    }
+  }
+
+  function saveDraftNow() {
+    try {
+      const draft = buildDraft({
+        clientId,
+        projectType,
+        zones,
+        activeZoneId,
+        taxes,
+        discountEnabled,
+        discountPercent,
+        laborEnabled,
+        laborPercent,
+        cablesEnabled,
+        cablesPercent,
+        introMessage,
+        paymentTerms,
+        deliveryTimeText,
+        validityText,
+        notes,
+      })
+      localStorage.setItem(draftKey, JSON.stringify(draft))
+      setDraftJustSaved(true)
+      setTimeout(() => setDraftJustSaved(false), 1800)
+    } catch {
+      // localStorage no disponible: el guardado manual no tiene efecto
+    }
+  }
+
   function removeItem(zoneId: string, productId: string) {
     setZones((prev) =>
       prev.map((z) => {
@@ -296,6 +531,25 @@ export function QuoteBuilderForm({
     formData.set('labor_percent', String(laborPercent))
     formData.set('cables_enabled', String(cablesEnabled))
     formData.set('cables_percent', String(cablesPercent))
+    formData.set('intro_message', introMessage)
+    formData.set('payment_terms', paymentTerms)
+    formData.set('delivery_time_text', deliveryTimeText)
+    formData.set('validity_text', validityText)
+    formData.set('notes', notes)
+
+    if (editMode) {
+      const result = await createQuoteVersion(editMode.quoteId, formData)
+
+      if (result?.error) {
+        setError(result.error)
+        setLoading(false)
+        return
+      }
+
+      setLoading(false)
+      router.push(`/quotes/${editMode.quoteId}`)
+      return
+    }
 
     const result = await createQuote(formData)
 
@@ -305,7 +559,18 @@ export function QuoteBuilderForm({
       return
     }
 
+    try {
+      localStorage.removeItem(draftKey)
+    } catch {
+      // localStorage no disponible: nada que limpiar
+    }
+
     setLoading(false)
+
+    if (result.quoteId && window.confirm(t('quoteBuilder.downloadPdfConfirm'))) {
+      window.open(`/quotes/${result.quoteId}/pdf`, '_blank')
+    }
+
     router.push('/quotes')
   }
 
@@ -320,6 +585,10 @@ export function QuoteBuilderForm({
           clients={clients}
           clientId={clientId}
           onClientChange={setClientId}
+          onAddClient={() => setShowNewClient(true)}
+          onClearDraft={clearDraft}
+          onSaveDraft={saveDraftNow}
+          draftJustSaved={draftJustSaved}
           projectType={projectType}
           onProjectTypeChange={setProjectType}
           zones={resolvedZones}
@@ -347,6 +616,16 @@ export function QuoteBuilderForm({
           cablesPercent={cablesPercent}
           onToggleCables={() => setCablesEnabled((prev) => !prev)}
           onChangeCablesPercent={setCablesPercent}
+          introMessage={introMessage}
+          onChangeIntroMessage={setIntroMessage}
+          paymentTerms={paymentTerms}
+          onChangePaymentTerms={setPaymentTerms}
+          deliveryTimeText={deliveryTimeText}
+          onChangeDeliveryTimeText={setDeliveryTimeText}
+          validityText={validityText}
+          onChangeValidityText={setValidityText}
+          notes={notes}
+          onChangeNotes={setNotes}
           taxes={taxes}
           totals={totals}
           onToggleTax={toggleTax}
@@ -359,6 +638,9 @@ export function QuoteBuilderForm({
           onOpenSaveTemplate={() => setShowSaveTemplate(true)}
           isExpanded={isCartExpanded}
           onToggleExpand={() => setIsCartExpanded((prev) => !prev)}
+          hideDraftControls={!!editMode}
+          submitLabel={editMode ? t('quoteBuilder.saveChanges') : undefined}
+          submittingLabel={editMode ? t('quoteBuilder.savingChanges') : undefined}
         />
       </div>
 
@@ -406,6 +688,17 @@ export function QuoteBuilderForm({
           zones={zones.map((z) => ({ id: z.id, name: z.name }))}
           onPick={pickZoneForPendingProduct}
           onClose={() => setPendingProductId(null)}
+        />
+      )}
+
+      {showNewClient && (
+        <ClientFormModal
+          client={null}
+          onClose={() => setShowNewClient(false)}
+          onCreated={(newClient) => {
+            setClients((prev) => [...prev, newClient].sort((a, b) => a.name.localeCompare(b.name)))
+            setClientId(newClient.id)
+          }}
         />
       )}
     </div>

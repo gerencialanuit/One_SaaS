@@ -23,6 +23,7 @@ export interface QuoteProductOption {
   image_url: string | null
   reference_url: string | null
   unit_price: number
+  unit_cost: number | null
   available_with_quotes: number
   is_favorite?: boolean
   next_arrival_date?: string | null
@@ -36,6 +37,15 @@ export interface QuoteWithDetails extends Quote {
     total: number
     estimated_delivery_date: string | null
   } | null
+}
+
+export interface QuotePdfItemData {
+  id: string
+  product_id: string
+  quantity: number
+  unit_price: number
+  zone_name: string | null
+  product: { name: string; description: string | null; image_url: string | null } | null
 }
 
 export interface QuoteItemWithProduct {

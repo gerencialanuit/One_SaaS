@@ -72,6 +72,11 @@ export function ProductHoverCardContent({ product }: { product: QuoteProductOpti
           <span className={TONE_TEXT_CLASSES[tone]}>{label}</span>
         )}
       </div>
+      {product.unit_cost != null && (
+        <div className="text-xs text-slate-muted">
+          {t('products.table.cost')}: {currency(product.unit_cost)}
+        </div>
+      )}
 
       {product.reference_url && (
         <a

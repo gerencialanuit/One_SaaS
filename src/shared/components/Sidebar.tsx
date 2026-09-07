@@ -72,10 +72,20 @@ const PRIMARY_NAV: NavItem[] = [
   },
 ]
 
-// Nada que administrar todavia (sin paginas de configuracion / equipo /
-// integraciones). El array queda listo para crecer: cada item soporta
-// `adminOnly` y `children` sin tocar el resto del componente.
-const SECONDARY_NAV: NavItem[] = []
+const SECONDARY_NAV: NavItem[] = [
+  {
+    href: '/users',
+    labelKey: 'sidebar.users',
+    adminOnly: true,
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m5-2.13a4 4 0 100-8 4 4 0 000 8zm6 0a4 4 0 100-8"
+      />
+    ),
+  },
+]
 
 const LOGOUT_ICON = (
   <path

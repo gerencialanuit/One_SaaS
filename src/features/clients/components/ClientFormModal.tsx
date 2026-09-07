@@ -10,9 +10,10 @@ import type { Client } from '@/types/database'
 interface ClientFormModalProps {
   client: Client | null
   onClose: () => void
+  onCreated?: (client: { id: string; name: string }) => void
 }
 
-export function ClientFormModal({ client, onClose }: ClientFormModalProps) {
+export function ClientFormModal({ client, onClose, onCreated }: ClientFormModalProps) {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const { locale } = useLocale()
@@ -23,10 +24,19 @@ export function ClientFormModal({ client, onClose }: ClientFormModalProps) {
     setLoading(true)
     setError(null)
 
-    const result = client
-      ? await updateClient(client.id, formData)
-      : await createClient(formData)
+    if (client) {
+      const result = await updateClient(client.id, formData)
+      if (result?.error) {
+        setError(result.error)
+        setLoading(false)
+        return
+      }
+      setLoading(false)
+      onClose()
+      return
+    }
 
+    const result = await createClient(formData)
     if (result?.error) {
       setError(result.error)
       setLoading(false)
@@ -34,6 +44,9 @@ export function ClientFormModal({ client, onClose }: ClientFormModalProps) {
     }
 
     setLoading(false)
+    if (result.client) {
+      onCreated?.(result.client)
+    }
     onClose()
   }
 
@@ -86,23 +99,35 @@ export function ClientFormModal({ client, onClose }: ClientFormModalProps) {
                 id="address"
                 name="address"
                 type="text"
+                required
                 defaultValue={client?.address ?? ''}
                 className="mt-1 w-full rounded-md border border-[#E5E9EF] bg-white px-3 py-2 text-navy outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
               />
             </div>
             <div>
-              <label htmlFor="client_type" className="block text-sm font-medium text-navy">Tipo de cliente</label>
-              <select
-                id="client_type"
-                name="client_type"
-                defaultValue={client?.client_type ?? 'cliente_final'}
+              <label htmlFor="city" className="block text-sm font-medium text-navy">Ciudad</label>
+              <input
+                id="city"
+                name="city"
+                type="text"
+                required
+                defaultValue={client?.city ?? ''}
                 className="mt-1 w-full rounded-md border border-[#E5E9EF] bg-white px-3 py-2 text-navy outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
-              >
-                {CLIENT_TYPES.map((value) => (
-                  <option key={value} value={value}>{getClientTypeLabel(locale, value)}</option>
-                ))}
-              </select>
+              />
             </div>
+          </div>
+          <div>
+            <label htmlFor="client_type" className="block text-sm font-medium text-navy">Tipo de cliente</label>
+            <select
+              id="client_type"
+              name="client_type"
+              defaultValue={client?.client_type ?? 'cliente_final'}
+              className="mt-1 w-full rounded-md border border-[#E5E9EF] bg-white px-3 py-2 text-navy outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
+            >
+              {CLIENT_TYPES.map((value) => (
+                <option key={value} value={value}>{getClientTypeLabel(locale, value)}</option>
+              ))}
+            </select>
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}

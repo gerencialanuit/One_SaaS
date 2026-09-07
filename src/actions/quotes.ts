@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getCurrentProfile, hasRole } from '@/lib/supabase/profile'
 import { computeQuoteEstimate, type IncomingOrder } from '@/features/quotes/utils/estimate'
 import { computeQuoteTotals, DEFAULT_TAX_LINES, LABOR_LINE_NAME, CABLES_LINE_NAME, type TaxLine } from '@/features/quotes/utils/taxes'
+import { DEFAULT_INTRO_MESSAGE, DEFAULT_PAYMENT_TERMS, DEFAULT_DELIVERY_TIME_TEXT, DEFAULT_VALIDITY_TEXT, DEFAULT_NOTES } from '@/features/quotes/constants'
 
 const itemSchema = z.object({
   product_id: z.string().trim().min(1),
@@ -30,6 +31,11 @@ const quoteSchema = z.object({
   labor_percent: z.coerce.number().min(0, 'La mano de obra no puede ser negativa').max(100, 'La mano de obra no puede superar 100%').default(0),
   cables_enabled: z.string().optional().transform((v) => v === 'true'),
   cables_percent: z.coerce.number().min(0, 'Cables y accesorios no puede ser negativo').max(100, 'Cables y accesorios no puede superar 100%').default(0),
+  intro_message: z.string().trim().min(1).default(DEFAULT_INTRO_MESSAGE),
+  payment_terms: z.string().trim().min(1).default(DEFAULT_PAYMENT_TERMS),
+  delivery_time_text: z.string().trim().min(1).default(DEFAULT_DELIVERY_TIME_TEXT),
+  validity_text: z.string().trim().min(1).default(DEFAULT_VALIDITY_TEXT),
+  notes: z.string().trim().default(DEFAULT_NOTES),
 })
 
 export async function createQuote(formData: FormData) {
@@ -57,6 +63,11 @@ export async function createQuote(formData: FormData) {
     labor_percent: formData.get('labor_percent') || '0',
     cables_enabled: formData.get('cables_enabled') || undefined,
     cables_percent: formData.get('cables_percent') || '0',
+    intro_message: formData.get('intro_message') || undefined,
+    payment_terms: formData.get('payment_terms') || undefined,
+    delivery_time_text: formData.get('delivery_time_text') || undefined,
+    validity_text: formData.get('validity_text') || undefined,
+    notes: formData.get('notes') ?? undefined,
   })
 
   if (!parsed.success) {
@@ -156,6 +167,11 @@ export async function createQuote(formData: FormData) {
       total: totals.total,
       estimated_delivery_date: estimate.estimatedDeliveryDate,
       requires_approval: requiresApproval,
+      intro_message: parsed.data.intro_message,
+      payment_terms: parsed.data.payment_terms,
+      delivery_time_text: parsed.data.delivery_time_text,
+      validity_text: parsed.data.validity_text,
+      notes: parsed.data.notes,
       created_by: profile.id,
     })
     .select('id')

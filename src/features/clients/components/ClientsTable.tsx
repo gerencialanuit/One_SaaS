@@ -7,9 +7,11 @@ import type { Client } from '@/types/database'
 interface ClientsTableProps {
   clients: Client[]
   onEdit: (client: Client) => void
+  onDelete: (client: Client) => void
+  deletingId: string | null
 }
 
-export function ClientsTable({ clients, onEdit }: ClientsTableProps) {
+export function ClientsTable({ clients, onEdit, onDelete, deletingId }: ClientsTableProps) {
   const { t, locale } = useLocale()
 
   if (clients.length === 0) {
@@ -30,6 +32,7 @@ export function ClientsTable({ clients, onEdit }: ClientsTableProps) {
             <th className="px-4 py-3 font-medium">{t('clients.table.whatsapp')}</th>
             <th className="px-4 py-3 font-medium">{t('clients.table.email')}</th>
             <th className="px-4 py-3 font-medium">{t('clients.table.address')}</th>
+            <th className="px-4 py-3 font-medium">{t('clients.table.city')}</th>
             <th className="px-4 py-3 font-medium">{t('clients.table.actions')}</th>
           </tr>
         </thead>
@@ -45,14 +48,25 @@ export function ClientsTable({ clients, onEdit }: ClientsTableProps) {
               <td className="px-4 py-3 text-slate">{client.whatsapp ?? '—'}</td>
               <td className="px-4 py-3 text-slate">{client.email ?? '—'}</td>
               <td className="px-4 py-3 text-slate">{client.address ?? '—'}</td>
+              <td className="px-4 py-3 text-slate">{client.city ?? '—'}</td>
               <td className="px-4 py-3">
-                <button
-                  type="button"
-                  onClick={() => onEdit(client)}
-                  className="font-medium text-brand-blue hover:text-brand-blue-hover"
-                >
-                  {t('clients.table.edit')}
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => onEdit(client)}
+                    className="font-medium text-brand-blue hover:text-brand-blue-hover"
+                  >
+                    {t('clients.table.edit')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDelete(client)}
+                    disabled={deletingId === client.id}
+                    className="font-medium text-red-600 hover:text-red-700 disabled:opacity-50"
+                  >
+                    {deletingId === client.id ? t('clients.table.deleting') : t('clients.table.delete')}
+                  </button>
+                </div>
               </td>
             </tr>
           ))}

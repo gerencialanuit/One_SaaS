@@ -6,6 +6,8 @@ export interface Profile {
   full_name: string | null
   avatar_url: string | null
   role: UserRole
+  cargo: string | null
+  commercial_email: string | null
   created_at: string
   updated_at: string
 }
@@ -118,6 +120,7 @@ export interface Client {
   whatsapp: string | null
   email: string | null
   address: string | null
+  city: string | null
   client_type: ClientType
   created_by: string | null
   created_at: string
@@ -132,6 +135,7 @@ export type QuoteStatus = 'draft' | 'sent' | 'pending_approval' | 'approved' | '
 
 export interface Quote {
   id: string
+  quote_number: string
   client_id: string
   commercial_id: string
   project_type: string
@@ -152,6 +156,11 @@ export interface QuoteVersion {
   requires_approval: boolean
   approved_by: string | null
   approved_at: string | null
+  intro_message: string
+  payment_terms: string
+  delivery_time_text: string
+  validity_text: string
+  notes: string
   created_by: string
   created_at: string
 }
@@ -294,15 +303,23 @@ export interface Database {
       }
       quotes: {
         Row: Quote
-        Insert: Omit<Quote, 'id' | 'created_at' | 'updated_at' | 'current_version_id'> & {
+        Insert: Omit<Quote, 'id' | 'quote_number' | 'created_at' | 'updated_at' | 'current_version_id'> & {
           id?: string
+          quote_number?: string
           current_version_id?: string | null
         }
         Update: Partial<Omit<Quote, 'id' | 'created_at'>>
       }
       quote_versions: {
         Row: QuoteVersion
-        Insert: Omit<QuoteVersion, 'id' | 'created_at'> & { id?: string }
+        Insert: Omit<QuoteVersion, 'id' | 'created_at' | 'intro_message' | 'payment_terms' | 'delivery_time_text' | 'validity_text' | 'notes'> & {
+          id?: string
+          intro_message?: string
+          payment_terms?: string
+          delivery_time_text?: string
+          validity_text?: string
+          notes?: string
+        }
         Update: Partial<Omit<QuoteVersion, 'id' | 'quote_id' | 'created_at'>>
       }
       quote_items: {

@@ -568,7 +568,12 @@ export function QuoteBuilderForm({
     setLoading(false)
 
     if (result.quoteId && window.confirm(t('quoteBuilder.downloadPdfConfirm'))) {
-      window.open(`/quotes/${result.quoteId}/pdf`, '_blank')
+      // Un <a download> fuerza la descarga del archivo en vez de que el
+      // celular/PWA abra el PDF a pantalla completa sin boton para volver.
+      const link = document.createElement('a')
+      link.href = `/quotes/${result.quoteId}/pdf`
+      link.download = `cotizacion-${result.quoteId}.pdf`
+      link.click()
     }
 
     router.push('/quotes')

@@ -65,8 +65,7 @@ export function QuoteDetailClient({
           </span>
           <a
             href={`/quotes/${quote.id}/pdf`}
-            target="_blank"
-            rel="noopener noreferrer"
+            download={`cotizacion-${quote.quote_number}.pdf`}
             className="rounded-lg border border-[#E5E9EF] px-4 py-2.5 font-medium text-slate transition-colors hover:bg-tint-blue hover:text-navy"
           >
             {t('quoteDetail.downloadPdf')}

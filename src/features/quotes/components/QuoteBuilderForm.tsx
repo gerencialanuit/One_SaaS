@@ -551,9 +551,19 @@ export function QuoteBuilderForm({
       return
     }
 
+    const isDesktop = typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 1024px)').matches
+    const wantsPdf = window.confirm(t('quoteBuilder.downloadPdfConfirm'))
+    // La pestaña se abre AQUI MISMO, en blanco, antes de cualquier await —
+    // todavia dentro del gesto de clic original del usuario. Si se abre
+    // despues de esperar la respuesta del servidor (como estaba antes), el
+    // navegador ya perdio el "user activation" y bloquea window.open() como
+    // popup en silencio: no pasa nada, sin error ni aviso visible.
+    const pdfWindow = wantsPdf && isDesktop ? window.open('about:blank', '_blank') : null
+
     const result = await createQuote(formData)
 
     if (result?.error) {
+      pdfWindow?.close()
       setError(result.error)
       setLoading(false)
       return
@@ -567,12 +577,11 @@ export function QuoteBuilderForm({
 
     setLoading(false)
 
-    if (result.quoteId && window.confirm(t('quoteBuilder.downloadPdfConfirm'))) {
-      const isDesktop = typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 1024px)').matches
-
-      if (isDesktop) {
-        // Escritorio: formato ya diseñado — visor de PDF en pestaña nueva.
-        window.open(`/quotes/${result.quoteId}/pdf`, '_blank')
+    if (wantsPdf && result.quoteId) {
+      if (pdfWindow) {
+        // Escritorio: formato ya diseñado — visor de PDF en la pestaña que ya
+        // estaba abierta, solo la redirigimos al PDF real.
+        pdfWindow.location.href = `/quotes/${result.quoteId}/pdf`
         router.push('/quotes')
         return
       }

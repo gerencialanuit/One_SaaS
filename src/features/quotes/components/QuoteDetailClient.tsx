@@ -6,12 +6,13 @@ import { VersionHistoryList } from './VersionHistoryList'
 import { QuoteEditModal } from './QuoteEditModal'
 import { ApprovalPanel } from './ApprovalPanel'
 import { SharePdfButton } from './SharePdfButton'
+import { getQuoteVersionDetails } from '@/actions/quote-versions'
 import { getQuoteStatusLabel } from '../constants'
 import { groupByZone } from '../utils/group-by-zone'
 import { sortTaxesForDisplay } from '../utils/taxes'
 import { useLocale } from '@/lib/i18n/LocaleProvider'
-import type { QuoteDetailData, QuoteProductOption } from '../types'
-import type { QuoteVersion } from '@/types/database'
+import type { QuoteDetailData, QuoteProductOption, QuoteItemWithProduct } from '../types'
+import type { QuoteVersion, QuoteTax } from '@/types/database'
 import type { IncomingOrder } from '../utils/estimate'
 
 const currency = (value: number) => `$${value.toLocaleString('es-CO')}`
@@ -38,7 +39,41 @@ export function QuoteDetailClient({
   const [showEdit, setShowEdit] = useState(false)
   const { t, locale } = useLocale()
   const status = getQuoteStatusLabel(locale, quote.status)
-  const zoneGroups = groupByZone(quote.currentItems)
+
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(currentVersion?.id ?? null)
+  const [viewedVersion, setViewedVersion] = useState<{
+    version: QuoteVersion
+    items: QuoteItemWithProduct[]
+    taxes: QuoteTax[]
+  } | null>(null)
+  const [loadingVersion, setLoadingVersion] = useState(false)
+
+  async function selectVersion(versionId: string) {
+    setSelectedVersionId(versionId)
+
+    if (versionId === currentVersion?.id) {
+      setViewedVersion(null)
+      return
+    }
+
+    setLoadingVersion(true)
+    const result = await getQuoteVersionDetails(versionId)
+    setLoadingVersion(false)
+
+    if (result.success) {
+      setViewedVersion({
+        version: result.version,
+        items: result.items as unknown as QuoteItemWithProduct[],
+        taxes: result.taxes,
+      })
+    }
+  }
+
+  const isViewingHistoricalVersion = viewedVersion !== null
+  const displayedVersion = viewedVersion?.version ?? currentVersion
+  const displayedItems = viewedVersion?.items ?? quote.currentItems
+  const displayedTaxes = viewedVersion?.taxes ?? quote.currentTaxes
+  const zoneGroups = groupByZone(displayedItems)
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -114,8 +149,24 @@ export function QuoteDetailClient({
           )}
 
           <div className="rounded-lg border border-[#E5E9EF] bg-white p-6 shadow-sm">
-            <h2 className="font-heading text-lg font-semibold text-navy">{t('quoteDetail.productsVersion')}</h2>
-            {zoneGroups.map((group) => {
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-heading text-lg font-semibold text-navy">
+                {isViewingHistoricalVersion
+                  ? t('quoteDetail.productsVersionN', { n: displayedVersion?.version_number ?? '' })
+                  : t('quoteDetail.productsVersion')}
+              </h2>
+              {isViewingHistoricalVersion && currentVersion && (
+                <button
+                  type="button"
+                  onClick={() => selectVersion(currentVersion.id)}
+                  className="text-xs font-medium text-brand-blue hover:text-brand-blue-hover hover:underline"
+                >
+                  {t('quoteDetail.backToCurrentVersion')}
+                </button>
+              )}
+            </div>
+            {loadingVersion && <p className="mt-4 text-sm text-slate">{t('quoteDetail.loadingVersion')}</p>}
+            {!loadingVersion && zoneGroups.map((group) => {
               const zoneTotal = group.items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
               return (
                 <div key={group.zoneName} className="mt-4">
@@ -149,17 +200,17 @@ export function QuoteDetailClient({
               )
             })}
 
-            {currentVersion && (
+            {!loadingVersion && displayedVersion && (
               <div className="mt-4 space-y-1 border-t border-[#E5E9EF] pt-4 text-sm">
                 <div className="flex justify-between">
                   <span className="text-slate">{t('quoteBuilder.subtotal')}</span>
-                  <span className="text-navy">{currency(currentVersion.subtotal)}</span>
+                  <span className="text-navy">{currency(displayedVersion.subtotal)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate">{t('quoteBuilder.discount')}</span>
-                  <span className="text-navy">{currentVersion.discount_percent}%</span>
+                  <span className="text-navy">{displayedVersion.discount_percent}%</span>
                 </div>
-                {sortTaxesForDisplay(quote.currentTaxes).filter((tax) => tax.enabled).map((tax) => (
+                {sortTaxesForDisplay(displayedTaxes).filter((tax) => tax.enabled).map((tax) => (
                   <div key={tax.id} className="flex justify-between">
                     <span className="text-slate">
                       {tax.name} ({tax.rate}%){tax.kind === 'withhold' ? ` — ${t('quoteBuilder.retention')}` : ''}
@@ -171,14 +222,14 @@ export function QuoteDetailClient({
                 ))}
                 <div className="flex justify-between font-heading text-lg font-bold">
                   <span className="text-navy">{t('quoteDetail.total')}</span>
-                  <span className="text-navy">{currency(currentVersion.total)}</span>
+                  <span className="text-navy">{currency(displayedVersion.total)}</span>
                 </div>
-                {quote.currentTaxes.some((tax) => tax.kind === 'withhold' && tax.enabled) && (
+                {displayedTaxes.some((tax) => tax.kind === 'withhold' && tax.enabled) && (
                   <p className="text-xs text-slate-muted">{t('quoteDetail.withholdingNote')}</p>
                 )}
                 <div className="flex justify-between">
                   <span className="text-slate">{t('quoteBuilder.estimatedDelivery')}</span>
-                  <span className="text-navy">{currentVersion.estimated_delivery_date ?? t('quoteBuilder.noDate')}</span>
+                  <span className="text-navy">{displayedVersion.estimated_delivery_date ?? t('quoteBuilder.noDate')}</span>
                 </div>
               </div>
             )}
@@ -186,7 +237,13 @@ export function QuoteDetailClient({
         </div>
 
         <div>
-          <VersionHistoryList versions={quote.versions} currentVersionId={quote.current_version_id} />
+          <VersionHistoryList
+            quoteId={quote.id}
+            versions={quote.versions}
+            currentVersionId={quote.current_version_id}
+            selectedVersionId={selectedVersionId}
+            onSelectVersion={selectVersion}
+          />
         </div>
       </div>
 

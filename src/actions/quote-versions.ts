@@ -283,3 +283,24 @@ export async function approveQuoteVersion(quoteVersionId: string, quoteId: strin
   revalidatePath('/quotes')
   return { success: true }
 }
+
+export async function getQuoteVersionDetails(versionId: string) {
+  const profile = await getCurrentProfile()
+  if (!profile) {
+    return { error: 'No autenticado' }
+  }
+
+  const supabase = await createClient()
+
+  const { data: version } = await supabase.from('quote_versions').select('*').eq('id', versionId).single()
+  if (!version) {
+    return { error: 'Versión no encontrada' }
+  }
+
+  const [{ data: items }, { data: taxes }] = await Promise.all([
+    supabase.from('quote_items').select('*, product:products(id, name, sku)').eq('quote_version_id', versionId),
+    supabase.from('quote_taxes').select('*').eq('quote_version_id', versionId),
+  ])
+
+  return { success: true, version, items: items ?? [], taxes: taxes ?? [] }
+}

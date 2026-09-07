@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { QuotePdfDocument, type QuotePdfData } from '@/features/quotes/pdf/QuotePdfDocument'
 import { toPdfImageSrcMap } from '@/features/quotes/pdf/pdfImage'
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
 
@@ -17,21 +17,29 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Cotización no encontrada' }, { status: 404 })
   }
 
+  // ?versionId= permite ver el PDF de una version anterior desde el
+  // historial; si no viene (o no pertenece a esta cotizacion), se usa la
+  // version actual.
+  const requestedVersionId = new URL(request.url).searchParams.get('versionId')
+
   const { data: version } = await supabase
     .from('quote_versions')
     .select('*')
-    .eq('id', quote.current_version_id)
+    .eq('id', requestedVersionId || quote.current_version_id)
+    .eq('quote_id', id)
     .single()
+
+  const versionId = version?.id ?? quote.current_version_id
 
   const { data: itemsRaw } = await supabase
     .from('quote_items')
     .select('quantity, unit_price, zone_name, product:products(name, description, image_url)')
-    .eq('quote_version_id', quote.current_version_id)
+    .eq('quote_version_id', versionId)
 
   const { data: taxesRaw } = await supabase
     .from('quote_taxes')
     .select('name, rate, kind, enabled, amount')
-    .eq('quote_version_id', quote.current_version_id)
+    .eq('quote_version_id', versionId)
 
   if (!version) {
     return NextResponse.json({ error: 'Versión no encontrada' }, { status: 404 })

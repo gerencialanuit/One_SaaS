@@ -568,12 +568,11 @@ export function QuoteBuilderForm({
     setLoading(false)
 
     if (result.quoteId && window.confirm(t('quoteBuilder.downloadPdfConfirm'))) {
-      // Un <a download> fuerza la descarga del archivo en vez de que el
-      // celular/PWA abra el PDF a pantalla completa sin boton para volver.
-      const link = document.createElement('a')
-      link.href = `/quotes/${result.quoteId}/pdf`
-      link.download = `cotizacion-${result.quoteId}.pdf`
-      link.click()
+      // target=_blank (sin download): dentro de la PWA instalada en iOS/Android
+      // esto abre el visor nativo de PDF del navegador del sistema, que trae su
+      // propio boton de compartir/guardar — un <a download> se queda atrapado
+      // dentro del contenedor de la PWA, que no tiene gestor de descargas.
+      window.open(`/quotes/${result.quoteId}/pdf`, '_blank')
     }
 
     router.push('/quotes')

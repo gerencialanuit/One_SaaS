@@ -321,6 +321,11 @@ npm run lint         # ESLint
 - **Fix**: `proxy.ts` va en `src/proxy.ts` cuando existe `src/app`. Validar SIEMPRE con `curl -s -o /dev/null -w "%{http_code} %{redirect_url}" http://localhost:PUERTO/<ruta-protegida>` sin cookies — debe devolver `307` hacia `/login`.
 - **Aplicar en**: Todos los proyectos que usen `/add-login` (ya corregido en el skill). Al validar cualquier feature de auth, NUNCA dar la proteccion por buena solo por probarla logueado en el navegador.
 
+### 2026-09-07: `<a download>` para PDFs se queda atrapado dentro de una PWA instalada
+- **Error**: Un enlace a un PDF (`Content-Disposition: inline` en el route handler) con `target="_blank"` parecia "abrir el PDF pero sin boton para descargar ni volver a la app" dentro de la PWA instalada (iOS/Android). El intento de arreglo — quitar `target="_blank"` y agregar el atributo `download` para forzar la descarga — lo empeoro: dentro del contenedor de la PWA instalada (modo standalone) no hay gestor de descargas del sistema, asi que el archivo "no descargaba a ningun lado", sin error visible.
+- **Fix**: Mantener `target="_blank" rel="noopener noreferrer"` (SIN `download`) en cualquier link/`window.open` a un PDF. Dentro de una PWA instalada, `target="_blank"` es justamente lo que hace que iOS/Android saquen la navegacion al navegador del sistema (Safari/Chrome), que si tiene su propio visor de PDF con boton de compartir/guardar (la flecha hacia arriba). El `<a download>` nunca sale del contenedor de la PWA, por eso falla en silencio.
+- **Aplicar en**: Cualquier proyecto de la fabrica con `/add-mobile` (PWA) que tambien genere o enlace archivos (PDF, imagenes, exports) para descargar. Nunca usar el atributo `download` para un archivo pensado para abrirse/compartirse desde dentro de una PWA instalada — probarlo siempre con la app instalada en un celular real, no solo en el navegador normal del computador (ahi ambos enfoques se ven identicos porque el navegador de escritorio si tiene su propio gestor de descargas).
+
 ---
 
 *V4: Todo es un Skill. Agent-First. El usuario habla, tu construyes.*

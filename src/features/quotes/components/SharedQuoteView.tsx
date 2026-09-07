@@ -169,7 +169,8 @@ export function SharedQuoteView({ token, data }: { token: string; data: SharedQu
 
         <a
           href={`/quote/${token}/pdf`}
-          download="cotizacion.pdf"
+          target="_blank"
+          rel="noopener noreferrer"
           className="mt-4 inline-block text-sm font-medium text-brand-blue hover:text-brand-blue-hover hover:underline"
         >
           Descargar PDF

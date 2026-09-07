@@ -63,9 +63,16 @@ export function QuoteDetailClient({
           <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${status.className}`}>
             {status.label}
           </span>
+          {/* target=_blank (NUNCA download): dentro de la PWA instalada esto es
+              lo unico que hace que iOS/Android abran el visor nativo de PDF del
+              navegador del sistema, con su propio boton de compartir/guardar.
+              Un <a download> se queda atrapado en el contenedor de la PWA, que
+              no tiene gestor de descargas — el archivo "no descarga a ningun
+              lado". */}
           <a
             href={`/quotes/${quote.id}/pdf`}
-            download={`cotizacion-${quote.quote_number}.pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
             className="rounded-lg border border-[#E5E9EF] px-4 py-2.5 font-medium text-slate transition-colors hover:bg-tint-blue hover:text-navy"
           >
             {t('quoteDetail.downloadPdf')}

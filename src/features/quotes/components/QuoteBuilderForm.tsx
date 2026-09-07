@@ -568,31 +568,24 @@ export function QuoteBuilderForm({
     setLoading(false)
 
     if (result.quoteId && window.confirm(t('quoteBuilder.downloadPdfConfirm'))) {
-      // Entregamos el PDF directo al menu nativo de compartir/guardar (igual
-      // que en el detalle de la cotizacion) en vez de abrir un visor: dentro
-      // de la PWA instalada un visor embebido no tiene boton de compartir ni
-      // de volver, y target=_blank/<a download> nunca escapan de su contenedor.
-      try {
-        const response = await fetch(`/quotes/${result.quoteId}/pdf`)
-        const blob = await response.blob()
-        const filename = `cotizacion-${result.quoteId}.pdf`
-        const file = new File([blob], filename, { type: 'application/pdf' })
-        const canShareFile = typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })
+      const isDesktop = typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 1024px)').matches
 
-        if (canShareFile) {
-          await navigator.share({ files: [file], title: filename })
-        } else {
-          const objectUrl = URL.createObjectURL(blob)
-          const link = document.createElement('a')
-          link.href = objectUrl
-          link.download = filename
-          link.click()
-          setTimeout(() => URL.revokeObjectURL(objectUrl), 10000)
-        }
-      } catch {
-        // Usuario cerro la hoja de compartir, o el gesto se perdio mientras se
-        // generaba el PDF: no bloqueamos la creacion de la cotizacion por esto.
+      if (isDesktop) {
+        // Escritorio: formato ya diseñado — visor de PDF en pestaña nueva.
+        window.open(`/quotes/${result.quoteId}/pdf`, '_blank')
+        router.push('/quotes')
+        return
       }
+
+      // Movil/PWA: intentar compartir aqui mismo no es confiable — entre el
+      // confirm(), el fetch del PDF y el resto del flujo se pierde el "gesto
+      // de usuario" que iOS exige para abrir el menu nativo, asi que
+      // navigator.share() simplemente no hace nada visible. En vez de eso
+      // llevamos al detalle de la cotizacion recien creada: ahi el boton
+      // "Compartir / Guardar" dispara con un toque fresco del usuario y si
+      // funciona de forma confiable.
+      router.push(`/quotes/${result.quoteId}`)
+      return
     }
 
     router.push('/quotes')

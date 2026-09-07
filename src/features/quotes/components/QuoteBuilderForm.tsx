@@ -568,11 +568,31 @@ export function QuoteBuilderForm({
     setLoading(false)
 
     if (result.quoteId && window.confirm(t('quoteBuilder.downloadPdfConfirm'))) {
-      // target=_blank (sin download): dentro de la PWA instalada en iOS/Android
-      // esto abre el visor nativo de PDF del navegador del sistema, que trae su
-      // propio boton de compartir/guardar — un <a download> se queda atrapado
-      // dentro del contenedor de la PWA, que no tiene gestor de descargas.
-      window.open(`/quotes/${result.quoteId}/pdf`, '_blank')
+      // Entregamos el PDF directo al menu nativo de compartir/guardar (igual
+      // que en el detalle de la cotizacion) en vez de abrir un visor: dentro
+      // de la PWA instalada un visor embebido no tiene boton de compartir ni
+      // de volver, y target=_blank/<a download> nunca escapan de su contenedor.
+      try {
+        const response = await fetch(`/quotes/${result.quoteId}/pdf`)
+        const blob = await response.blob()
+        const filename = `cotizacion-${result.quoteId}.pdf`
+        const file = new File([blob], filename, { type: 'application/pdf' })
+        const canShareFile = typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })
+
+        if (canShareFile) {
+          await navigator.share({ files: [file], title: filename })
+        } else {
+          const objectUrl = URL.createObjectURL(blob)
+          const link = document.createElement('a')
+          link.href = objectUrl
+          link.download = filename
+          link.click()
+          setTimeout(() => URL.revokeObjectURL(objectUrl), 10000)
+        }
+      } catch {
+        // Usuario cerro la hoja de compartir, o el gesto se perdio mientras se
+        // generaba el PDF: no bloqueamos la creacion de la cotizacion por esto.
+      }
     }
 
     router.push('/quotes')

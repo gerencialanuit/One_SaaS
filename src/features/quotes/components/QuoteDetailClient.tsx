@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { VersionHistoryList } from './VersionHistoryList'
 import { QuoteEditModal } from './QuoteEditModal'
 import { ApprovalPanel } from './ApprovalPanel'
-import { ShareQuoteButton } from './ShareQuoteButton'
 import { SharePdfButton } from './SharePdfButton'
 import { getQuoteStatusLabel } from '../constants'
 import { groupByZone } from '../utils/group-by-zone'
@@ -64,14 +63,15 @@ export function QuoteDetailClient({
           <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${status.className}`}>
             {status.label}
           </span>
-          {/* Ver = visor embebido (dentro de la PWA no trae barra de
-              herramientas); Compartir = Web Share API, que si abre el menu
-              nativo del sistema para WhatsApp/Mail/Guardar en Archivos. */}
+          {/* Ver = visor embebido; solo en web (lg:) porque dentro de la PWA
+              instalada ese visor no trae barra de herramientas (ni compartir
+              ni volver) — en movil solo dejamos el boton de Compartir/Guardar,
+              que si abre el menu nativo del sistema. */}
           <a
             href={`/quotes/${quote.id}/pdf`}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-lg border border-[#E5E9EF] px-4 py-2.5 font-medium text-slate transition-colors hover:bg-tint-blue hover:text-navy"
+            className="hidden rounded-lg border border-[#E5E9EF] px-4 py-2.5 font-medium text-slate transition-colors hover:bg-tint-blue hover:text-navy lg:inline-block"
           >
             {t('quoteDetail.viewPdf')}
           </a>
@@ -104,11 +104,8 @@ export function QuoteDetailClient({
         </div>
       </div>
 
-      {canEdit && (
-        <div className="mt-4">
-          <ShareQuoteButton quoteId={quote.id} />
-        </div>
-      )}
+      {/* "Compartir con cliente" (aprobacion online con firma) queda fuera por
+          ahora: la aprobacion de la cotizacion la hace manual el comercial. */}
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">

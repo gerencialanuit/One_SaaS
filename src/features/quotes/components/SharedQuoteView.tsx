@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import { decideSharedQuote } from '@/actions/quote-share'
 import { sortTaxesForDisplay } from '../utils/taxes'
 import { SignaturePad, type SignaturePadHandle } from './SignaturePad'
+import { SharePdfButton } from './SharePdfButton'
 
 interface SharedQuoteItem {
   product_name: string
@@ -167,14 +168,25 @@ export function SharedQuoteView({ token, data }: { token: string; data: SharedQu
           </div>
         </div>
 
-        <a
-          href={`/quote/${token}/pdf`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-4 inline-block text-sm font-medium text-brand-blue hover:text-brand-blue-hover hover:underline"
-        >
-          Descargar PDF
-        </a>
+        <div className="mt-4 flex flex-wrap items-center gap-4">
+          <a
+            href={`/quote/${token}/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-medium text-brand-blue hover:text-brand-blue-hover hover:underline"
+          >
+            Ver PDF
+          </a>
+          <SharePdfButton
+            url={`/quote/${token}/pdf`}
+            filename="cotizacion.pdf"
+            label="Compartir / Guardar PDF"
+            loadingLabel="Generando PDF..."
+            tapAgainLabel="Toca de nuevo para compartir o guardar."
+            errorLabel="No se pudo generar el PDF. Intenta de nuevo."
+            className="text-sm font-medium text-brand-blue hover:text-brand-blue-hover hover:underline disabled:opacity-50"
+          />
+        </div>
 
         <div className="mt-8 border-t border-[#E5E9EF] pt-6">
           {decided ? (

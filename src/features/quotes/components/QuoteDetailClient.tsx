@@ -6,6 +6,7 @@ import { VersionHistoryList } from './VersionHistoryList'
 import { QuoteEditModal } from './QuoteEditModal'
 import { ApprovalPanel } from './ApprovalPanel'
 import { ShareQuoteButton } from './ShareQuoteButton'
+import { SharePdfButton } from './SharePdfButton'
 import { getQuoteStatusLabel } from '../constants'
 import { groupByZone } from '../utils/group-by-zone'
 import { sortTaxesForDisplay } from '../utils/taxes'
@@ -63,20 +64,26 @@ export function QuoteDetailClient({
           <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${status.className}`}>
             {status.label}
           </span>
-          {/* target=_blank (NUNCA download): dentro de la PWA instalada esto es
-              lo unico que hace que iOS/Android abran el visor nativo de PDF del
-              navegador del sistema, con su propio boton de compartir/guardar.
-              Un <a download> se queda atrapado en el contenedor de la PWA, que
-              no tiene gestor de descargas — el archivo "no descarga a ningun
-              lado". */}
+          {/* Ver = visor embebido (dentro de la PWA no trae barra de
+              herramientas); Compartir = Web Share API, que si abre el menu
+              nativo del sistema para WhatsApp/Mail/Guardar en Archivos. */}
           <a
             href={`/quotes/${quote.id}/pdf`}
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-lg border border-[#E5E9EF] px-4 py-2.5 font-medium text-slate transition-colors hover:bg-tint-blue hover:text-navy"
           >
-            {t('quoteDetail.downloadPdf')}
+            {t('quoteDetail.viewPdf')}
           </a>
+          <SharePdfButton
+            url={`/quotes/${quote.id}/pdf`}
+            filename={`cotizacion-${quote.quote_number}.pdf`}
+            label={t('quoteDetail.sharePdf')}
+            loadingLabel={t('quoteDetail.pdfGenerating')}
+            tapAgainLabel={t('quoteDetail.pdfTapAgain')}
+            errorLabel={t('quoteDetail.pdfError')}
+            className="rounded-lg border border-[#E5E9EF] px-4 py-2.5 font-medium text-slate transition-colors hover:bg-tint-blue hover:text-navy disabled:opacity-50"
+          />
           {canEdit && quote.status === 'draft' && (
             <Link
               href={`/quotes/${quote.id}/edit`}
